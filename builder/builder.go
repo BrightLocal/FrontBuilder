@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,8 +17,8 @@ import (
 )
 
 type Builder struct {
-	filesDir     string
-	workDir      string
+	source       string
+	destination  string
 	environment  string
 	jsFiles      []string
 	tsFiles      []string
@@ -35,10 +36,10 @@ type FrontBuilder interface {
 	GetFilesDirectory() string
 }
 
-func NewBuilder(root, env, workDir string) *Builder {
+func NewBuilder(source, destination, env string) *Builder {
 	return &Builder{
-		filesDir:    root,
-		workDir:     workDir,
+		source:      source,
+		destination: destination,
 		environment: env,
 		jsApps:      make(map[string]string),
 	}
@@ -98,17 +99,17 @@ func (b *Builder) GetTSFiles() []string {
 }
 
 func (b *Builder) GetFilesDirectory() string {
-	return b.filesDir
+	return b.source
 }
 
 func (b *Builder) clearStaticDir() error {
-	dir, err := ioutil.ReadDir(b.workDir)
+	dir, err := ioutil.ReadDir(b.destination)
 	if err != nil {
 		return err
 	}
 	for _, d := range dir {
 		if d.IsDir() && (d.Name() == "views" || d.Name() == "js") {
-			if err := os.RemoveAll(filepath.Join(b.workDir, d.Name())); err != nil {
+			if err := os.RemoveAll(filepath.Join(b.destination, d.Name())); err != nil {
 				return err
 			}
 		}
@@ -117,7 +118,7 @@ func (b *Builder) clearStaticDir() error {
 }
 
 func (b *Builder) collectFiles() error {
-	return filepath.Walk(b.filesDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(b.source, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
@@ -175,7 +176,7 @@ func (b *Builder) prepareBuildOptions() {
 		paths := strings.Split(strings.TrimSuffix(dir, "/"), "/")
 		folder := strings.Join(paths[1:], "/")
 		buildOption := b.getDefaultBuildOption()
-		buildOption.Outdir = filepath.Join(b.workDir, "/js", folder)
+		buildOption.Outdir = filepath.Join(b.destination, "/js", folder)
 		if !strings.HasSuffix(jsFile, ".ts") {
 			buildOption.EntryPoints = []string{jsFile}
 			buildOptions = append(buildOptions, buildOption)
@@ -194,7 +195,7 @@ func (b *Builder) processHTMLFiles() error {
 		dir, filename := filepath.Split(htmlFile)
 		paths := strings.Split(strings.TrimSuffix(dir, "/"), "/")
 		folder := strings.Join(paths[1:], "/")
-		destPath := filepath.Join(b.workDir, "views", folder, filename)
+		destPath := filepath.Join(b.destination, "views", folder, filename)
 		if err := b.prepareHTMLFile(htmlFile, destPath); err != nil {
 			return err
 		}
@@ -233,17 +234,18 @@ func (b *Builder) processJSFiles() error {
 					if err := os.Rename(file.Path, outfile); err != nil {
 						return err
 					}
-					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.workDir, "/js"))
-					dir := strings.TrimPrefix(b.filesDir, "./")
+					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js"))
+					dir := strings.TrimPrefix(b.source, "./")
 					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
+					log.Printf("html files-> %s", htmlFile)
 					if val, ok := b.jsApps[dir+htmlFile]; ok && val != "" {
 						b.jsApps[dir+htmlFile] = outfile
 					}
 				}
 			} else {
 				if !strings.HasSuffix(file.Path, ".map") {
-					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.workDir, "/js"))
-					dir := strings.TrimPrefix(b.filesDir, "./")
+					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js"))
+					dir := strings.TrimPrefix(b.source, "./")
 					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
 					if val, ok := b.jsApps[dir+htmlFile]; ok && val != "" {
 						b.jsApps[dir+htmlFile] = file.Path
@@ -261,7 +263,7 @@ func (b *Builder) prepareHTMLFile(src, dst string) error {
 		return err
 	}
 	if jsFile, ok := b.jsApps[src]; ok {
-		filename := strings.TrimPrefix(jsFile, b.workDir)
+		filename := strings.TrimPrefix(jsFile, b.destination)
 		// @TODO replace hardcoded index.html
 		if strings.HasSuffix(src, "index.html") {
 			scriptTag := []byte(`<script src=""></script>`)

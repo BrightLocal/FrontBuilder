@@ -15,7 +15,7 @@ import (
 
 func main() {
 	cfg := configure()
-	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Env, cfg.Destination)
+	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Destination, cfg.Env)
 	frontBuilder.Build()
 	if cfg.Watch {
 		buildWatcher, err := watcher.NewBuildWatcher(frontBuilder)
