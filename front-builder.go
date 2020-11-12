@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -12,7 +14,7 @@ import (
 
 func main() {
 	cfg := configure()
-	frontBuilder := builder.NewBuilder(cfg.Source, cfg.Env, cfg.Destination)
+	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Env, cfg.Destination)
 	frontBuilder.Build()
 	if cfg.Watch {
 		buildWatcher, err := watcher.NewBuildWatcher(frontBuilder)
@@ -27,7 +29,7 @@ func main() {
 type config struct {
 	Env         string
 	Watch       bool
-	Source      string
+	Source      []string
 	Destination string
 }
 
@@ -35,12 +37,35 @@ func (c config) IsProduction() bool {
 	return strings.HasPrefix(c.Env, "prod")
 }
 
+func (c *config) readFile() error {
+	f, err := os.Open(".front-builder.json")
+	if err != nil {
+		return err
+	}
+	type fConfig struct {
+		Source      interface{}
+		Destination string
+	}
+	var fc fConfig
+	if err = json.NewDecoder(f).Decode(fc); err != nil {
+		return err
+	}
+	if src, ok := fc.Source.(string); ok {
+		c.Source = []string{src}
+	} else if src, ok := fc.Source.([]string); ok {
+		c.Source = src
+	} else {
+		return errors.New("source can be either string or array of strings")
+	}
+	return nil
+}
+
 func configure() config {
 	cfg := config{
 		Env:         "production",
 		Watch:       false,
-		Source:      "./views",  // TODO make configurable
-		Destination: "./static", // TODO make configurable
+		Source:      []string{"./views"},
+		Destination: "./static",
 	}
 	if len(os.Args) == 2 {
 		cfg.Watch = os.Args[1] == "watch"
@@ -55,6 +80,10 @@ func configure() config {
 		}
 	} else {
 		usage()
+	}
+	if err := cfg.readFile(); err != nil {
+		fmt.Printf("Error reading config file: %s\n", err)
+		os.Exit(2)
 	}
 	return cfg
 }

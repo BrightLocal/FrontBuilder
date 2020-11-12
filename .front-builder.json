@@ -1,0 +1,4 @@
+{
+  "source": "./views",
+  "destination": "./static"
+}
