@@ -1,70 +1,45 @@
 package watcher
 
 import (
+	"errors"
 	"fmt"
-	"log"
+	"os"
 
-	"github.com/BrightLocal/FrontBuilder/builder"
 	"github.com/fsnotify/fsnotify"
 )
 
 type BuildWatcher struct {
-	Builder builder.FrontBuilder
 	Watcher *fsnotify.Watcher
 }
 
-func NewBuildWatcher(builder builder.FrontBuilder) (*BuildWatcher, error) {
+func NewBuildWatcher() (*BuildWatcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	return &BuildWatcher{
-		Builder: builder,
 		Watcher: watcher,
 	}, nil
 }
 
-func (bw *BuildWatcher) Watch() {
-	fmt.Printf("Start watching files in directory %s\n", bw.Builder.GetFilesDirectory())
-	defer func() { _ = bw.Watcher.Close() }()
-	done := make(chan bool)
+func (bw *BuildWatcher) Watch(directory string) (chan struct{}, error) {
+	if stat, err := os.Stat(directory); err != nil {
+		return nil, err
+	} else if !stat.IsDir() {
+		return nil, errors.New("not a directory")
+	}
+	eventC := make(chan struct{})
+	fmt.Printf("Start watching files in directory %s\n", directory)
 	go func() {
-		for {
-			select {
-			case event, ok := <-bw.Watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Printf("Rebuild file: %s", event.Name)
-					bw.Builder.Build()
-				}
-			case err, ok := <-bw.Watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Printf("got watch error: %s", err)
+		for event := range bw.Watcher.Events {
+			if event.Op&fsnotify.Chmod == 0 {
+				eventC <- struct{}{}
 			}
 		}
 	}()
-
-	for _, file := range bw.Builder.GetJSFiles() {
-		err := bw.Watcher.Add(file)
-		if err != nil {
-			log.Fatal(err)
-		}
+	err := bw.Watcher.Add(directory)
+	if err != nil {
+		return nil, err
 	}
-	for _, file := range bw.Builder.GetHTMLFiles() {
-		err := bw.Watcher.Add(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	for _, file := range bw.Builder.GetTSFiles() {
-		err := bw.Watcher.Add(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	<-done
+	return eventC, nil
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,14 +17,26 @@ import (
 func main() {
 	cfg := configure()
 	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Destination, cfg.Env)
-	frontBuilder.Build()
+	if err := frontBuilder.Build(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	if cfg.Watch {
-		buildWatcher, err := watcher.NewBuildWatcher(frontBuilder)
+		buildWatcher, err := watcher.NewBuildWatcher()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		buildWatcher.Watch()
+		events, err := buildWatcher.Watch(cfg.Source[0])
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		for range events {
+			if err = frontBuilder.Build(); err != nil {
+				log.Printf("error rebuilding files: %s", err)
+			}
+		}
 	}
 }
 

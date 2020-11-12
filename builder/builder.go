@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,10 +30,7 @@ type Builder struct {
 
 type FrontBuilder interface {
 	Build()
-	GetJSFiles() []string
-	GetHTMLFiles() []string
-	GetTSFiles() []string
-	GetFilesDirectory() string
+	GetSourceDirectory() string
 }
 
 func NewBuilder(source, destination, env string) *Builder {
@@ -44,15 +42,13 @@ func NewBuilder(source, destination, env string) *Builder {
 	}
 }
 
-func (b *Builder) Build() {
+func (b *Builder) Build() error {
 	start := time.Now()
 	if err := b.clearStaticDir(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	if err := b.collectFiles(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	fmt.Printf("%d files collected in %s\n",
 		len(b.htmlFiles)+len(b.tsFiles)+len(b.jsFiles),
@@ -69,35 +65,22 @@ func (b *Builder) Build() {
 		b.build()
 		b.checkBuildErrors()
 		if err := b.processJSFiles(); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		fmt.Printf("JS processed in %s\n", time.Since(start))
 	}
 	{
 		start := time.Now()
 		if err := b.processHTMLFiles(); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		fmt.Printf("HTML processed in %s\n", time.Since(start))
 	}
 	fmt.Printf("Build completed in %s\n", time.Since(start))
+	return nil
 }
 
-func (b *Builder) GetJSFiles() []string {
-	return b.jsFiles
-}
-
-func (b *Builder) GetHTMLFiles() []string {
-	return b.htmlFiles
-}
-
-func (b *Builder) GetTSFiles() []string {
-	return b.tsFiles
-}
-
-func (b *Builder) GetFilesDirectory() string {
+func (b *Builder) GetSourceDirectory() string {
 	return b.source
 }
 
@@ -237,6 +220,7 @@ func (b *Builder) processJSFiles() error {
 					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js")+"/")
 					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
 					if val, ok := b.jsApps[htmlFile]; ok && val != "" {
+						log.Printf("src -> %s", strings.TrimPrefix(file.Path, b.destination))
 						b.jsApps[htmlFile] = strings.TrimPrefix(file.Path, b.destination)
 					}
 				}
