@@ -43,6 +43,7 @@ func (c *config) readFile() error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = f.Close() }()
 	type fConfig struct {
 		Source      interface{}
 		Destination string
@@ -58,6 +59,7 @@ func (c *config) readFile() error {
 	} else {
 		return errors.New("source can be either string or array of strings")
 	}
+	c.Destination = fc.Destination
 	return nil
 }
 
@@ -82,17 +84,27 @@ func configure() config {
 	}
 	if err := cfg.readFile(); err != nil {
 		fmt.Printf("Error reading config file: %s\n", err)
-		os.Exit(2)
+		os.Exit(1)
 	}
 	var err error
 	if cfg.Destination, err = filepath.Abs(cfg.Destination); err != nil {
 		fmt.Printf("Error expanind destination path: %s\n", err)
-		os.Exit(2)
+		os.Exit(1)
+	}
+	if _, err = os.Stat(cfg.Destination); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(cfg.Destination, 0750); err != nil {
+			fmt.Printf("Error creating missing destination directory: %s", err)
+			os.Exit(1)
+		}
 	}
 	for i := range cfg.Source {
 		if cfg.Source[i], err = filepath.Abs(cfg.Source[i]); err != nil {
 			fmt.Printf("Error expanind source path %q: %s\n", cfg.Source[i], err)
-			os.Exit(2)
+			os.Exit(1)
+		}
+		if _, err := os.Stat(cfg.Source[i]); err != nil && os.IsNotExist(err) {
+			fmt.Printf("Source directory %q does not exists: %s", cfg.Source[i], err)
+			os.Exit(1)
 		}
 	}
 	return cfg
