@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -220,7 +219,6 @@ func (b *Builder) processJSFiles() error {
 					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js")+"/")
 					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
 					if val, ok := b.jsApps[htmlFile]; ok && val != "" {
-						log.Printf("src -> %s", strings.TrimPrefix(file.Path, b.destination))
 						b.jsApps[htmlFile] = strings.TrimPrefix(file.Path, b.destination)
 					}
 				}
