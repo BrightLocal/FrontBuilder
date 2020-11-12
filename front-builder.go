@@ -47,7 +47,7 @@ func (c *config) readFile() error {
 		Destination string
 	}
 	var fc fConfig
-	if err = json.NewDecoder(f).Decode(fc); err != nil {
+	if err = json.NewDecoder(f).Decode(&fc); err != nil {
 		return err
 	}
 	if src, ok := fc.Source.(string); ok {
