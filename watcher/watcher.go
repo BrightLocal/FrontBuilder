@@ -25,17 +25,13 @@ func NewBuildWatcher(builder builder.FrontBuilder) (*BuildWatcher, error) {
 }
 
 func (bw *BuildWatcher) Watch() {
-	fmt.Printf("Start watching files in directory %s\n", bw.Builder.GetFilesDir())
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() { _ = watcher.Close() }()
+	fmt.Printf("Start watching files in directory %s\n", bw.Builder.GetFilesDirectory())
+	defer func() { _ = bw.Watcher.Close() }()
 	done := make(chan bool)
 	go func() {
 		for {
 			select {
-			case event, ok := <-watcher.Events:
+			case event, ok := <-bw.Watcher.Events:
 				if !ok {
 					return
 				}
@@ -43,7 +39,7 @@ func (bw *BuildWatcher) Watch() {
 					log.Printf("Rebuild file: %s", event.Name)
 					bw.Builder.Build()
 				}
-			case err, ok := <-watcher.Errors:
+			case err, ok := <-bw.Watcher.Errors:
 				if !ok {
 					return
 				}
@@ -53,19 +49,19 @@ func (bw *BuildWatcher) Watch() {
 	}()
 
 	for _, file := range bw.Builder.GetJSFiles() {
-		err = watcher.Add(file)
+		err := bw.Watcher.Add(file)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 	for _, file := range bw.Builder.GetHTMLFiles() {
-		err = watcher.Add(file)
+		err := bw.Watcher.Add(file)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 	for _, file := range bw.Builder.GetTSFiles() {
-		err = watcher.Add(file)
+		err := bw.Watcher.Add(file)
 		if err != nil {
 			log.Fatal(err)
 		}
