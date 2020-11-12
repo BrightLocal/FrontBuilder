@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/BrightLocal/FrontBuilder/builder"
@@ -62,10 +63,8 @@ func (c *config) readFile() error {
 
 func configure() config {
 	cfg := config{
-		Env:         "production",
-		Watch:       false,
-		Source:      []string{"./views"},
-		Destination: "./static",
+		Env:   "production",
+		Watch: false,
 	}
 	if len(os.Args) == 2 {
 		cfg.Watch = os.Args[1] == "watch"
@@ -84,6 +83,17 @@ func configure() config {
 	if err := cfg.readFile(); err != nil {
 		fmt.Printf("Error reading config file: %s\n", err)
 		os.Exit(2)
+	}
+	var err error
+	if cfg.Destination, err = filepath.Abs(cfg.Destination); err != nil {
+		fmt.Printf("Error expanind destination path: %s\n", err)
+		os.Exit(2)
+	}
+	for i := range cfg.Source {
+		if cfg.Source[i], err = filepath.Abs(cfg.Source[i]); err != nil {
+			fmt.Printf("Error expanind source path %q: %s\n", cfg.Source[i], err)
+			os.Exit(2)
+		}
 	}
 	return cfg
 }
