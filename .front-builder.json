@@ -1,4 +1,4 @@
 {
-  "source": "./views",
-  "destination": "./static"
+  "source": "./test-folders/src",
+  "destination": "./test-folders/dst"
 }
