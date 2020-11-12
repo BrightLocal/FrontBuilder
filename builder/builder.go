@@ -15,10 +15,6 @@ import (
 	"github.com/evanw/esbuild/pkg/api"
 )
 
-var (
-	static = "/static/"
-)
-
 type Builder struct {
 	filesDir     string
 	workDir      string
@@ -106,13 +102,13 @@ func (b *Builder) GetFilesDirectory() string {
 }
 
 func (b *Builder) clearStaticDir() error {
-	dir, err := ioutil.ReadDir(b.workDir + static)
+	dir, err := ioutil.ReadDir(b.workDir)
 	if err != nil {
 		return err
 	}
 	for _, d := range dir {
 		if d.IsDir() && (d.Name() == "views" || d.Name() == "js") {
-			if err := os.RemoveAll(filepath.Join(b.workDir+static, d.Name())); err != nil {
+			if err := os.RemoveAll(filepath.Join(b.workDir, d.Name())); err != nil {
 				return err
 			}
 		}
@@ -179,7 +175,7 @@ func (b *Builder) prepareBuildOptions() {
 		paths := strings.Split(strings.TrimSuffix(dir, "/"), "/")
 		folder := strings.Join(paths[1:], "/")
 		buildOption := b.getDefaultBuildOption()
-		buildOption.Outdir = filepath.Join(b.workDir, static, "/js", folder)
+		buildOption.Outdir = filepath.Join(b.workDir, "/js", folder)
 		if !strings.HasSuffix(jsFile, ".ts") {
 			buildOption.EntryPoints = []string{jsFile}
 			buildOptions = append(buildOptions, buildOption)
@@ -198,7 +194,7 @@ func (b *Builder) processHTMLFiles() error {
 		dir, filename := filepath.Split(htmlFile)
 		paths := strings.Split(strings.TrimSuffix(dir, "/"), "/")
 		folder := strings.Join(paths[1:], "/")
-		destPath := filepath.Join(b.workDir, static, "views", folder, filename)
+		destPath := filepath.Join(b.workDir, "views", folder, filename)
 		if err := b.prepareHTMLFile(htmlFile, destPath); err != nil {
 			return err
 		}
@@ -237,7 +233,7 @@ func (b *Builder) processJSFiles() error {
 					if err := os.Rename(file.Path, outfile); err != nil {
 						return err
 					}
-					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.workDir, static, "/js"))
+					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.workDir, "/js"))
 					dir := strings.TrimPrefix(b.filesDir, "./")
 					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
 					if val, ok := b.jsApps[dir+htmlFile]; ok && val != "" {
@@ -246,7 +242,7 @@ func (b *Builder) processJSFiles() error {
 				}
 			} else {
 				if !strings.HasSuffix(file.Path, ".map") {
-					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.workDir, static, "/js"))
+					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.workDir, "/js"))
 					dir := strings.TrimPrefix(b.filesDir, "./")
 					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
 					if val, ok := b.jsApps[dir+htmlFile]; ok && val != "" {
