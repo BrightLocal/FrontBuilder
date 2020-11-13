@@ -63,9 +63,6 @@ func (b *Builder) HTMLExtension(ext string) *Builder {
 
 func (b *Builder) Build() error {
 	start := time.Now()
-	if err := b.clearStaticDir(); err != nil {
-		return fmt.Errorf("error clear destination folder: %s", err)
-	}
 	if err := b.collectFiles(); err != nil {
 		return fmt.Errorf("error collect source files: %s", err)
 	}
@@ -103,21 +100,6 @@ func (b *Builder) Build() error {
 
 func (b *Builder) GetSourceDirectory() string {
 	return b.source
-}
-
-func (b *Builder) clearStaticDir() error {
-	dir, err := ioutil.ReadDir(b.destination)
-	if err != nil {
-		return err
-	}
-	for _, d := range dir {
-		if d.IsDir() && (d.Name() == "views" || d.Name() == "js") {
-			if err := os.RemoveAll(filepath.Join(b.destination, d.Name())); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func (b *Builder) collectFiles() error {
