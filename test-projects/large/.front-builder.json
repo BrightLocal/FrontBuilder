@@ -1,0 +1,10 @@
+{
+  "source": [
+    "./templates",
+    "./scripts",
+    "./styles"
+  ],
+  "destination": "./destination",
+  "index_file": "home.html",
+  "html_extension": "html"
+}

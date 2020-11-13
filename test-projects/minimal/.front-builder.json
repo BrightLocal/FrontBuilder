@@ -1,0 +1,6 @@
+{
+  "source": "./source",
+  "destination": "./destination",
+  "index_file": "index.htm",
+  "html_extension": "htm"
+}
