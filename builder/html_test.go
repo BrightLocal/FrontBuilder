@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -9,21 +10,41 @@ import (
 )
 
 func TestHTML(t *testing.T) {
-	html := NewHTMLFile("test_files/test.html").
-		InjectJS(NewJSFile("script.js", []byte("console.log('hello');\n")))
-	if assert.NoError(t, html.Render("test_files/out.html", false)) {
-		if r, err := ioutil.ReadFile("test_files/out.html"); assert.NoError(t, err) {
-			expectHTML := []byte("Boo ya!\n<script src=\"/script.js\"></script>\nBye!\n")
-			if assert.Equal(t, r, expectHTML) {
-				_ = os.Remove("test_files/out.html")
-			}
-		}
+	const root = "test_files/"
+	testCases := []struct {
+		htmlFile     string
+		scriptFile   string
+		outFile      string
+		release      bool
+		expectToFind string
+	}{
+		{
+			htmlFile:     "source.html",
+			scriptFile:   "script.js",
+			outFile:      "out.html",
+			release:      false,
+			expectToFind: `src="/script.js"`,
+		},
+		{
+			htmlFile:     "source.html",
+			scriptFile:   "script.js",
+			outFile:      "out.html",
+			release:      true,
+			expectToFind: `src="/script.cd4d3d46.js"`,
+		},
 	}
-	if assert.NoError(t, html.Render("test_files/out.html", true)) {
-		if r, err := ioutil.ReadFile("test_files/out.html"); assert.NoError(t, err) {
-			expectHTML := []byte("Boo ya!\n<script src=\"/script.HASH-HERE.js\"></script>\nBye!\n")
-			if assert.Equal(t, r, expectHTML) {
-				_ = os.Remove("test_files/out.html")
+	for _, tt := range testCases {
+		if script, err := ioutil.ReadFile(root + tt.scriptFile); assert.NoError(t, err) {
+			html := NewHTMLFile(root + tt.htmlFile)
+			html.InjectJS(
+				NewJSFile(root+tt.scriptFile, script),
+			)
+			if assert.NoError(t, html.Render(root+tt.outFile, tt.release)) {
+				if r, err := ioutil.ReadFile(root + tt.outFile); assert.NoError(t, err) {
+					if assert.True(t, bytes.Contains(r, []byte(tt.expectToFind))) {
+						_ = os.Remove(root + tt.outFile)
+					}
+				}
 			}
 		}
 	}
