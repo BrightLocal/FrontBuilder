@@ -5,8 +5,8 @@ type JSFile struct {
 	content []byte
 }
 
-func NewJSFile(path string, content []byte) *JSFile {
-	return &JSFile{path: path, content: content}
+func NewJSFile(destinationFile string, content []byte) *JSFile {
+	return &JSFile{path: destinationFile, content: content}
 }
 
 func (j *JSFile) GetScriptSource(releaseBuild bool) string {

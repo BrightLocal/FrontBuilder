@@ -2,21 +2,23 @@ package builder
 
 type HTMLFile struct {
 	path   string
-	jsFile *JSFile
+	script *JSFile
 }
 
-func NewHTMLFile(path string) *HTMLFile {
-	return &HTMLFile{path: path}
+func NewHTMLFile(sourceFile string) *HTMLFile {
+	return &HTMLFile{path: sourceFile}
 }
 
-func (h *HTMLFile) Render(destination string, releaseBuild bool) error {
+func (h *HTMLFile) InjectJS(script *JSFile) *HTMLFile {
+	h.script = script
+	return h
+}
+
+func (h *HTMLFile) Render(destinationFile string, releaseBuild bool) error {
 	// TODO implement me
-	if h.jsFile != nil {
-		h.jsFile.GetScriptSource(releaseBuild)
+	if h.script != nil {
+		src := h.script.GetScriptSource(releaseBuild)
+		_ = src
 	}
 	return nil
-}
-
-func (h *HTMLFile) InjectJS(jsFile *JSFile) {
-	h.jsFile = jsFile
 }
