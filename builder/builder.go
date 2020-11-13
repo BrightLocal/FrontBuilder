@@ -17,29 +17,48 @@ import (
 )
 
 type Builder struct {
-	source       string
-	destination  string
-	environment  string
-	jsFiles      []string
-	tsFiles      []string
-	htmlFiles    []string
-	jsApps       map[string]string
-	buildOptions []api.BuildOptions
-	buildResult  []api.BuildResult
+	source        string
+	destination   string
+	releaseBuild  bool
+	indexFile     string
+	htmlExtension string
+	jsFiles       []string
+	tsFiles       []string
+	htmlFiles     []string
+	jsApps        map[string]string
+	buildOptions  []api.BuildOptions
+	buildResult   []api.BuildResult
 }
+
+const (
+	defaultIndex         = "index.html"
+	defaultHTMLExtension = ".html"
+)
 
 type FrontBuilder interface {
 	Build()
 	GetSourceDirectory() string
 }
 
-func NewBuilder(source, destination, env string) *Builder {
+func NewBuilder(source, destination string, releaseBuild bool) *Builder {
 	return &Builder{
-		source:      strings.TrimRight(source, "/") + "/",
-		destination: strings.TrimRight(destination, "/") + "/",
-		environment: env,
-		jsApps:      make(map[string]string),
+		source:        strings.TrimRight(source, "/") + "/",
+		destination:   strings.TrimRight(destination, "/") + "/",
+		releaseBuild:  releaseBuild,
+		indexFile:     defaultIndex,
+		htmlExtension: defaultHTMLExtension,
+		jsApps:        make(map[string]string),
 	}
+}
+
+func (b *Builder) IndexFile(fileName string) *Builder {
+	b.indexFile = fileName
+	return b
+}
+
+func (b *Builder) HTMLExtension(ext string) *Builder {
+	b.htmlExtension = "." + strings.TrimLeft(ext, ".")
+	return b
 }
 
 func (b *Builder) Build() error {
@@ -109,7 +128,7 @@ func (b *Builder) collectFiles() error {
 		switch {
 		case strings.HasSuffix(info.Name(), ".js"):
 			b.jsFiles = append(b.jsFiles, strings.TrimPrefix(path, b.source))
-		case strings.HasSuffix(info.Name(), ".html"):
+		case strings.HasSuffix(info.Name(), b.htmlExtension):
 			b.htmlFiles = append(b.htmlFiles, strings.TrimPrefix(path, b.source))
 		case strings.HasSuffix(info.Name(), ".ts"):
 			b.tsFiles = append(b.tsFiles, strings.TrimPrefix(path, b.source))
@@ -120,19 +139,19 @@ func (b *Builder) collectFiles() error {
 
 func (b *Builder) prepareApps() {
 	for _, file := range b.jsFiles {
-		if contains(b.htmlFiles, file) {
-			b.jsApps[strings.TrimSuffix(file, ".js")+".html"] = file
+		if b.contains(b.htmlFiles, file) {
+			b.jsApps[strings.TrimSuffix(file, ".js")+b.htmlExtension] = file
 		}
 	}
 	for _, file := range b.tsFiles {
-		if contains(b.htmlFiles, file) {
-			b.jsApps[strings.TrimSuffix(file, ".ts")+".html"] = file
+		if b.contains(b.htmlFiles, file) {
+			b.jsApps[strings.TrimSuffix(file, ".ts")+b.htmlExtension] = file
 		}
 	}
 }
 
 func (b *Builder) getDefaultBuildOption() api.BuildOptions {
-	if b.environment == "production" {
+	if b.releaseBuild {
 		return api.BuildOptions{
 			Bundle:            true,
 			Write:             true,
@@ -203,7 +222,7 @@ func (b *Builder) processJSFiles() error {
 	for _, result := range b.buildResult {
 		for _, file := range result.OutputFiles {
 			dir, fileName := filepath.Split(file.Path)
-			if b.environment == "production" {
+			if b.releaseBuild {
 				if !strings.HasSuffix(file.Path, ".map") {
 					hashSum := md5.Sum(file.Contents)
 					fileHash := fmt.Sprintf("%x", hashSum)[:8]
@@ -213,7 +232,7 @@ func (b *Builder) processJSFiles() error {
 						return err
 					}
 					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js")+"/")
-					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
+					htmlFile := strings.TrimSuffix(compiledFile, ".js") + b.htmlExtension
 					if val, ok := b.jsApps[htmlFile]; ok && val != "" {
 						b.jsApps[htmlFile] = outfile
 					}
@@ -221,7 +240,7 @@ func (b *Builder) processJSFiles() error {
 			} else {
 				if !strings.HasSuffix(file.Path, ".map") {
 					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js")+"/")
-					htmlFile := strings.TrimSuffix(compiledFile, ".js") + ".html"
+					htmlFile := strings.TrimSuffix(compiledFile, ".js") + b.htmlExtension
 					if val, ok := b.jsApps[htmlFile]; ok && val != "" {
 						b.jsApps[htmlFile] = strings.TrimPrefix(file.Path, b.destination)
 					}
@@ -239,8 +258,7 @@ func (b *Builder) prepareHTMLFile(htmlFile string) error {
 	}
 	if jsFile, ok := b.jsApps[htmlFile]; ok {
 		filename := strings.TrimPrefix(jsFile, b.destination)
-		// @TODO replace hardcoded index.html
-		if filepath.Base(htmlFile) == "index.html" {
+		if filepath.Base(htmlFile) == b.indexFile {
 			scriptTag := []byte(`<script src=""></script>`)
 			if bytes.Contains(htmlSrc, scriptTag) {
 				htmlSrc = bytes.Replace(htmlSrc, []byte(`src=""`), []byte(`src="/`+filename+`"`), -1)
@@ -260,9 +278,9 @@ func (b *Builder) prepareHTMLFile(htmlFile string) error {
 	return nil
 }
 
-func contains(s []string, e string) bool {
+func (b Builder) contains(s []string, e string) bool {
 	for _, htmlFile := range s {
-		if htmlPath := strings.TrimSuffix(htmlFile, ".html"); htmlPath == strings.TrimSuffix(e, ".js") ||
+		if htmlPath := strings.TrimSuffix(htmlFile, b.htmlExtension); htmlPath == strings.TrimSuffix(e, ".js") ||
 			htmlPath == strings.TrimSuffix(e, ".ts") {
 			return true
 		}

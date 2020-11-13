@@ -1,4 +1,6 @@
 {
   "source": "./test-folders/src",
-  "destination": "./test-folders/dst"
+  "destination": "./test-folders/dst",
+  "index_file": "index.html",
+  "html_extension": "html"
 }

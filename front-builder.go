@@ -16,7 +16,13 @@ import (
 
 func main() {
 	cfg := configure()
-	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Destination, cfg.Env)
+	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Destination, cfg.IsProduction())
+	if cfg.HTMLExtension != "" {
+		frontBuilder.HTMLExtension(cfg.HTMLExtension)
+	}
+	if cfg.IndexFile != "" {
+		frontBuilder.IndexFile(cfg.IndexFile)
+	}
 	if err := frontBuilder.Build(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -41,10 +47,12 @@ func main() {
 }
 
 type config struct {
-	Env         string
-	Watch       bool
-	Source      []string
-	Destination string
+	Env           string
+	Watch         bool
+	Source        []string
+	Destination   string
+	IndexFile     string
+	HTMLExtension string
 }
 
 func (c config) IsProduction() bool {
@@ -58,8 +66,10 @@ func (c *config) readFile() error {
 	}
 	defer func() { _ = f.Close() }()
 	type fConfig struct {
-		Source      interface{}
-		Destination string
+		Source        interface{} `json:"source"`
+		Destination   string      `json:"destination"`
+		IndexFile     string      `json:"index_file"`
+		HTMLExtension string      `json:"html_extension"`
 	}
 	var fc fConfig
 	if err = json.NewDecoder(f).Decode(&fc); err != nil {
@@ -73,6 +83,8 @@ func (c *config) readFile() error {
 		return errors.New("source can be either string or array of strings")
 	}
 	c.Destination = fc.Destination
+	c.IndexFile = fc.HTMLExtension
+	c.HTMLExtension = fc.HTMLExtension
 	return nil
 }
 
