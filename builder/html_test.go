@@ -41,9 +41,8 @@ func TestHTML(t *testing.T) {
 			)
 			if assert.NoError(t, html.Render(root+tt.outFile, tt.release)) {
 				if r, err := ioutil.ReadFile(root + tt.outFile); assert.NoError(t, err) {
-					if assert.True(t, bytes.Contains(r, []byte(tt.expectToFind))) {
-						_ = os.Remove(root + tt.outFile)
-					}
+					assert.True(t, bytes.Contains(r, []byte(tt.expectToFind)))
+					_ = os.Remove(root + tt.outFile)
 				}
 			}
 		}
