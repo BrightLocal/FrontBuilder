@@ -29,7 +29,7 @@ func (bw *BuildWatcher) Watch(directory string) (chan struct{}, error) {
 		return nil, errors.New("not a directory")
 	}
 	eventC := make(chan struct{})
-	fmt.Printf("Start watching files in directory %s\n", directory)
+	fmt.Printf("Watching directory %s\n", directory)
 	go func() {
 		for event := range bw.Watcher.Events {
 			if event.Op&fsnotify.Chmod == 0 {

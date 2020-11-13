@@ -33,12 +33,20 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		events, err := buildWatcher.Watch(cfg.Source[0])
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		allEvents := make(chan struct{})
+		for _, src := range cfg.Source {
+			events, err := buildWatcher.Watch(src)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			go func(e chan struct{}) {
+				for event := range e {
+					allEvents <- event
+				}
+			}(events)
 		}
-		for range events {
+		for range allEvents {
 			if err = frontBuilder.Build(); err != nil {
 				log.Printf("error rebuilding files: %s", err)
 			}
@@ -77,8 +85,14 @@ func (c *config) readFile() error {
 	}
 	if src, ok := fc.Source.(string); ok {
 		c.Source = []string{src}
-	} else if src, ok := fc.Source.([]string); ok {
-		c.Source = src
+	} else if src, ok := fc.Source.([]interface{}); ok {
+		for _, s := range src {
+			if s, ok := s.(string); ok {
+				c.Source = append(c.Source, s)
+			} else {
+				return errors.New("source can be either string or array of strings")
+			}
+		}
 	} else {
 		return errors.New("source can be either string or array of strings")
 	}
