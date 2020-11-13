@@ -31,7 +31,7 @@ type Builder struct {
 }
 
 const (
-	defaultIndex         = "index.html"
+	defaultIndexFile     = "index.html"
 	defaultHTMLExtension = ".html"
 )
 
@@ -45,7 +45,7 @@ func NewBuilder(source, destination string, releaseBuild bool) *Builder {
 		source:        strings.TrimRight(source, "/") + "/",
 		destination:   strings.TrimRight(destination, "/") + "/",
 		releaseBuild:  releaseBuild,
-		indexFile:     defaultIndex,
+		indexFile:     defaultIndexFile,
 		htmlExtension: defaultHTMLExtension,
 		jsApps:        make(map[string]string),
 	}
