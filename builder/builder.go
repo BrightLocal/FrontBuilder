@@ -3,6 +3,7 @@ package builder
 import (
 	"bytes"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,10 +45,10 @@ func NewBuilder(source, destination, env string) *Builder {
 func (b *Builder) Build() error {
 	start := time.Now()
 	if err := b.clearStaticDir(); err != nil {
-		return err
+		return fmt.Errorf("error clear destination folder: %s", err)
 	}
 	if err := b.collectFiles(); err != nil {
-		return err
+		return fmt.Errorf("error collect source files: %s", err)
 	}
 	fmt.Printf("%d files collected in %s\n",
 		len(b.htmlFiles)+len(b.tsFiles)+len(b.jsFiles),
@@ -62,16 +63,18 @@ func (b *Builder) Build() error {
 	{
 		start := time.Now()
 		b.build()
-		b.checkBuildErrors()
+		if err := b.checkBuildErrors(); err != nil {
+			return fmt.Errorf("build failed: %s", err)
+		}
 		if err := b.processJSFiles(); err != nil {
-			return err
+			return fmt.Errorf("fail process js files: %s", err)
 		}
 		fmt.Printf("JS processed in %s\n", time.Since(start))
 	}
 	{
 		start := time.Now()
 		if err := b.processHTMLFiles(); err != nil {
-			return err
+			return fmt.Errorf("fail process HTML files: %s", err)
 		}
 		fmt.Printf("HTML processed in %s\n", time.Since(start))
 	}
@@ -184,15 +187,16 @@ func (b *Builder) build() {
 	}
 }
 
-func (b *Builder) checkBuildErrors() {
+func (b *Builder) checkBuildErrors() error {
 	for _, result := range b.buildResult {
 		if len(result.Errors) > 0 {
 			for _, err := range result.Errors {
 				fmt.Printf("Error in %s:%d: %s\n", err.Location.File, err.Location.Line, err.Text)
 			}
-			os.Exit(1)
+			return errors.New("errors on build process. check above messages")
 		}
 	}
+	return nil
 }
 
 func (b *Builder) processJSFiles() error {
