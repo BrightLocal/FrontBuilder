@@ -83,6 +83,7 @@ func configure() config {
 	}
 	if len(os.Args) == 2 {
 		cfg.Watch = os.Args[1] == "watch"
+		cfg.Env = "development"
 	} else if len(os.Args) == 3 {
 		if os.Args[1] != "build" {
 			fmt.Println("Expected command: 'build' or 'watch'")
