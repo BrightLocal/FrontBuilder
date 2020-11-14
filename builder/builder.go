@@ -57,7 +57,6 @@ func (b *Builder) HTMLExtension(ext string) *Builder {
 }
 
 /*
-TODO
 1. Collect files
 2. Build/bundle scripts
 3. Inject scripts into appropriate HTMLs
@@ -73,14 +72,9 @@ func (b *Builder) Build() error {
 	if err := b.checkBuildErrors(); err != nil {
 		return fmt.Errorf("build failed: %s", err)
 	}
-	/*
-		if err := b.processJSFiles(); err != nil {
-			return fmt.Errorf("error processing scripts: %s", err)
-		}
-		if err := b.processHTMLFiles(); err != nil {
-			return fmt.Errorf("error processing HTMLs: %s", err)
-		}
-	*/
+	if err := b.processHTMLFiles(); err != nil {
+		return fmt.Errorf("error processing HTMLs: %s", err)
+	}
 	return nil
 }
 
@@ -159,14 +153,27 @@ func (b *Builder) prepareBuildOptions() {
 }
 
 func (b *Builder) processHTMLFiles() error {
-	for _, htmlFile := range b.htmls {
-		// TODO render HTMLs
-		_ = htmlFile
-		// if err := b.prepareHTMLFile(htmlFile); err != nil {
-		// 	return err
-		// }
+	resultFiles := b.resultFiles()
+	for path, html := range b.htmls {
+		script := strings.TrimSuffix(path, b.htmlExtension) + ".js"
+		if content, ok := resultFiles[script]; ok {
+			html.InjectJS(NewJSFile(script, content))
+		}
+		if err := html.Render(filepath.Join(b.destination, path), b.releaseBuild); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func (b *Builder) resultFiles() map[string][]byte {
+	files := make(map[string][]byte)
+	for _, result := range b.buildResult {
+		for _, file := range result.OutputFiles {
+			files[file.Path] = file.Contents
+		}
+	}
+	return files
 }
 
 func (b *Builder) build() {
