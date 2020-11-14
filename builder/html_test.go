@@ -23,14 +23,14 @@ func TestHTML(t *testing.T) {
 			scriptFile:   "script.js",
 			outFile:      "out.html",
 			release:      false,
-			expectToFind: `src="/script.js"`,
+			expectToFind: `src="/test_files/script.js"`,
 		},
 		{
 			htmlFile:     "source.html",
 			scriptFile:   "script.js",
 			outFile:      "out.html",
 			release:      true,
-			expectToFind: `src="/script.cd4d3d46.js"`,
+			expectToFind: `src="/test_files/script.cd4d3d46.js"`,
 		},
 	}
 	for _, tt := range testCases {
@@ -41,7 +41,7 @@ func TestHTML(t *testing.T) {
 			)
 			if assert.NoError(t, html.Render(root+tt.outFile, tt.release)) {
 				if r, err := ioutil.ReadFile(root + tt.outFile); assert.NoError(t, err) {
-					assert.True(t, bytes.Contains(r, []byte(tt.expectToFind)))
+					assert.True(t, bytes.Contains(r, []byte(tt.expectToFind)), string(r))
 					_ = os.Remove(root + tt.outFile)
 				}
 			}

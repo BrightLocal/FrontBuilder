@@ -4,26 +4,30 @@ import (
 	"crypto/md5"
 	"fmt"
 	"path"
-	"path/filepath"
+	"strings"
 )
 
 type JSFile struct {
-	path    string
+	dst     string
 	content []byte
 }
 
 func NewJSFile(destinationFile string, content []byte) *JSFile {
-	return &JSFile{path: destinationFile, content: content}
+	return &JSFile{
+		dst:     "/" + strings.TrimLeft(destinationFile, "/"),
+		content: content,
+	}
 }
 
 func (j *JSFile) GetScriptSource(releaseBuild bool) string {
-	_, fileName := filepath.Split(j.path)
-	if releaseBuild {
-		hashSum := md5.Sum(j.content)
-		fileHash := fmt.Sprintf("%x", hashSum)[:8]
-		ext := path.Ext(fileName)
-		outfile := fileName[0:len(fileName)-len(ext)] + "." + fileHash + ".js"
-		return outfile
+	if !releaseBuild {
+		return j.dst
 	}
-	return fileName
+	ext := path.Ext(j.dst)
+	hash := md5.Sum(j.content)
+	return fmt.Sprintf("%s.%x%s",
+		strings.TrimSuffix(j.dst, ext),
+		hash[:4],
+		ext,
+	)
 }

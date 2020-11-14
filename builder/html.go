@@ -2,19 +2,20 @@ package builder
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 type HTMLFile struct {
-	path   string
+	src    string
 	script *JSFile
 }
 
+var appPlaceholder = []byte(`<!--#APP#-->`)
+
 func NewHTMLFile(sourceFile string) *HTMLFile {
-	return &HTMLFile{path: sourceFile}
+	return &HTMLFile{src: sourceFile}
 }
 
 func (h *HTMLFile) InjectJS(script *JSFile) *HTMLFile {
@@ -23,21 +24,19 @@ func (h *HTMLFile) InjectJS(script *JSFile) *HTMLFile {
 }
 
 func (h *HTMLFile) Render(destinationFile string, releaseBuild bool) error {
-	htmlSrc, err := ioutil.ReadFile(h.path)
-	if err != nil && err != io.EOF {
+	html, err := ioutil.ReadFile(h.src)
+	if err != nil {
 		return err
 	}
-	if h.script != nil {
-		src := h.script.GetScriptSource(releaseBuild)
-		if bytes.Contains(htmlSrc, []byte(`<script src=""></script>`)) {
-			htmlSrc = bytes.Replace(htmlSrc, []byte(`src=""`), []byte(`src="/`+src+`"`), -1)
-		}
+	if s := h.script; s != nil {
+		html = bytes.ReplaceAll(
+			html,
+			appPlaceholder,
+			[]byte(`<script src="`+s.GetScriptSource(releaseBuild)+`"></script>`),
+		)
 	}
-	if err := os.MkdirAll(filepath.Dir(destinationFile), 0770); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destinationFile), 0750); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(destinationFile, htmlSrc, 0644); err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(destinationFile, html, 0640)
 }
