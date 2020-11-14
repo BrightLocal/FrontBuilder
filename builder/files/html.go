@@ -1,4 +1,4 @@
-package builder
+package files
 
 import (
 	"bytes"
@@ -7,23 +7,23 @@ import (
 	"path/filepath"
 )
 
-type HTMLFile struct {
+type HTML struct {
 	src    string
-	script *JSFile
+	script *JS
 }
 
 var appPlaceholder = []byte(`<!--#APP#-->`)
 
-func NewHTMLFile(sourceFile string) *HTMLFile {
-	return &HTMLFile{src: sourceFile}
+func NewHTML(sourceFile string) *HTML {
+	return &HTML{src: sourceFile}
 }
 
-func (h *HTMLFile) InjectJS(script *JSFile) *HTMLFile {
+func (h *HTML) InjectJS(script *JS) *HTML {
 	h.script = script
 	return h
 }
 
-func (h *HTMLFile) Render(destinationFile string, releaseBuild bool) error {
+func (h *HTML) Render(destinationFile string, releaseBuild bool) error {
 	html, err := ioutil.ReadFile(h.src)
 	if err != nil {
 		return err

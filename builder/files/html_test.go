@@ -1,4 +1,4 @@
-package builder
+package files
 
 import (
 	"bytes"
@@ -35,9 +35,9 @@ func TestHTML(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		if script, err := ioutil.ReadFile(root + tt.scriptFile); assert.NoError(t, err) {
-			html := NewHTMLFile(root + tt.htmlFile)
+			html := NewHTML(root + tt.htmlFile)
 			html.InjectJS(
-				NewJSFile(root+tt.scriptFile, script),
+				NewJS(root+tt.scriptFile, script),
 			)
 			if assert.NoError(t, html.Render(root+tt.outFile, tt.release)) {
 				if r, err := ioutil.ReadFile(root + tt.outFile); assert.NoError(t, err) {

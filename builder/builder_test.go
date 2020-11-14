@@ -3,6 +3,7 @@ package builder
 import (
 	"testing"
 
+	"github.com/BrightLocal/FrontBuilder/builder/files"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +17,7 @@ func TestPrepareApps(t *testing.T) {
 		typeScripts: []string{
 			"index.ts",
 		},
-		htmls: map[string]*HTMLFile{
+		htmls: map[string]*files.HTML{
 			"index.html":     {},
 			"app/index.html": {},
 		},

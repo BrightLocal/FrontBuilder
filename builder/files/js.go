@@ -1,4 +1,4 @@
-package builder
+package files
 
 import (
 	"crypto/md5"
@@ -7,19 +7,19 @@ import (
 	"strings"
 )
 
-type JSFile struct {
+type JS struct {
 	dst     string
 	content []byte
 }
 
-func NewJSFile(destinationFile string, content []byte) *JSFile {
-	return &JSFile{
+func NewJS(destinationFile string, content []byte) *JS {
+	return &JS{
 		dst:     "/" + strings.TrimLeft(destinationFile, "/"),
 		content: content,
 	}
 }
 
-func (j *JSFile) GetScriptSource(releaseBuild bool) string {
+func (j *JS) GetScriptSource(releaseBuild bool) string {
 	if !releaseBuild {
 		return j.dst
 	}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/BrightLocal/FrontBuilder/builder/files"
 	"github.com/evanw/esbuild/pkg/api"
 )
 
@@ -18,7 +19,7 @@ type Builder struct {
 	htmlExtension string
 	scripts       []string
 	typeScripts   []string
-	htmls         map[string]*HTMLFile
+	htmls         map[string]*files.HTML
 	jsApps        map[string]string
 	buildOptions  []api.BuildOptions
 	buildResult   []api.BuildResult
@@ -42,7 +43,7 @@ func NewBuilder(source, destination string, releaseBuild bool) *Builder {
 		indexFile:     defaultIndexFile,
 		htmlExtension: defaultHTMLExtension,
 		jsApps:        make(map[string]string),
-		htmls:         make(map[string]*HTMLFile),
+		htmls:         make(map[string]*files.HTML),
 	}
 }
 
@@ -56,15 +57,9 @@ func (b *Builder) HTMLExtension(ext string) *Builder {
 	return b
 }
 
-/*
-1. Collect files
-2. Build/bundle scripts
-3. Inject scripts into appropriate HTMLs
-4. Render HTMLs
-*/
 func (b *Builder) Build() error {
 	if err := b.collectFiles(); err != nil {
-		return fmt.Errorf("error collecting html files: %s", err)
+		return fmt.Errorf("error collecting files: %s", err)
 	}
 	b.prepareApps()
 	b.prepareBuildOptions()
@@ -89,7 +84,7 @@ func (b *Builder) collectFiles() error {
 		case strings.HasSuffix(info.Name(), ".ts"):
 			b.typeScripts = append(b.typeScripts, strings.TrimPrefix(path, b.source))
 		case strings.HasSuffix(info.Name(), b.htmlExtension):
-			b.htmls[info.Name()] = NewHTMLFile(info.Name())
+			b.htmls[info.Name()] = files.NewHTML(info.Name())
 		}
 		return nil
 	})
@@ -110,76 +105,24 @@ func (b *Builder) prepareApps() {
 	}
 }
 
-func (b *Builder) getDefaultBuildOption() api.BuildOptions {
-	if b.releaseBuild {
-		return api.BuildOptions{
-			Bundle:            true,
-			Write:             true,
-			LogLevel:          api.LogLevelInfo,
-			Sourcemap:         api.SourceMapLinked,
-			Target:            api.ESNext,
-			MinifyWhitespace:  true,
-			MinifyIdentifiers: true,
-			MinifySyntax:      true,
-		}
-	}
-	return api.BuildOptions{
-		Bundle:    true,
-		Write:     true,
-		LogLevel:  api.LogLevelInfo,
-		Sourcemap: api.SourceMapNone,
-		Target:    api.ESNext,
-	}
-}
-
 func (b *Builder) prepareBuildOptions() {
 	var buildOptions []api.BuildOptions
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
 		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile))
-		if strings.HasSuffix(jsFile, ".js") {
-			buildOption.EntryPoints = []string{filepath.Join(b.source, jsFile)}
-			buildOptions = append(buildOptions, buildOption)
-		} else if strings.HasSuffix(jsFile, ".ts") {
-			buildOption.EntryPoints = []string{filepath.Join(b.source, jsFile)}
+		buildOption.EntryPoints = []string{filepath.Join(b.source, jsFile)}
+		if strings.HasSuffix(jsFile, ".ts") {
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
 			buildOption.Tsconfig = "tsconfig.json"
-			buildOptions = append(buildOptions, buildOption)
-		} else {
-			panic("unexpected file type: " + jsFile)
 		}
+		buildOptions = append(buildOptions, buildOption)
 	}
 	b.buildOptions = buildOptions
 }
 
-func (b *Builder) processHTMLFiles() error {
-	resultFiles := b.resultFiles()
-	for path, html := range b.htmls {
-		script := strings.TrimSuffix(path, b.htmlExtension) + ".js"
-		if content, ok := resultFiles[script]; ok {
-			html.InjectJS(NewJSFile(script, content))
-		}
-		if err := html.Render(filepath.Join(b.destination, path), b.releaseBuild); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (b *Builder) resultFiles() map[string][]byte {
-	files := make(map[string][]byte)
-	for _, result := range b.buildResult {
-		for _, file := range result.OutputFiles {
-			files[file.Path] = file.Contents
-		}
-	}
-	return files
-}
-
 func (b *Builder) build() {
 	for _, buildOption := range b.buildOptions {
-		result := api.Build(buildOption)
-		b.buildResult = append(b.buildResult, result)
+		b.buildResult = append(b.buildResult, api.Build(buildOption))
 	}
 }
 
@@ -193,6 +136,37 @@ func (b *Builder) checkBuildErrors() error {
 		}
 	}
 	return nil
+}
+
+func (b *Builder) processHTMLFiles() error {
+	resultFiles := b.resultFiles()
+	for path, html := range b.htmls {
+		script := strings.TrimSuffix(path, b.htmlExtension) + ".js"
+		if content, ok := resultFiles[script]; ok {
+			html.InjectJS(files.NewJS(script, content))
+		}
+		if err := html.Render(filepath.Join(b.destination, path), b.releaseBuild); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Builder) getDefaultBuildOption() api.BuildOptions {
+	if b.releaseBuild {
+		return releaseBuildOptions
+	}
+	return devBuildOptions
+}
+
+func (b *Builder) resultFiles() map[string][]byte {
+	htmlScripts := make(map[string][]byte)
+	for _, result := range b.buildResult {
+		for _, file := range result.OutputFiles {
+			htmlScripts[file.Path] = file.Contents
+		}
+	}
+	return htmlScripts
 }
 
 /*
