@@ -89,7 +89,7 @@ func (b *Builder) collectFiles() error {
 		case strings.HasSuffix(info.Name(), ".ts"):
 			b.typeScripts = append(b.typeScripts, strings.TrimPrefix(path, b.source))
 		case strings.HasSuffix(info.Name(), b.htmlExtension):
-			b.htmls[info.Name()] = NewHTMLFile(info.Name())
+			b.htmls[info.Name()] = NewHTMLFile(b.source + info.Name())
 		}
 		return nil
 	})
