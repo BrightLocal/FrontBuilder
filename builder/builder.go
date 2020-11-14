@@ -1,17 +1,11 @@
 package builder
 
 import (
-	"bytes"
-	"crypto/md5"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/evanw/esbuild/pkg/api"
 )
@@ -22,9 +16,9 @@ type Builder struct {
 	releaseBuild  bool
 	indexFile     string
 	htmlExtension string
-	jsFiles       []string
-	tsFiles       []string
-	htmlFiles     []string
+	scripts       []string
+	typeScripts   []string
+	htmls         map[string]*HTMLFile
 	jsApps        map[string]string
 	buildOptions  []api.BuildOptions
 	buildResult   []api.BuildResult
@@ -48,6 +42,7 @@ func NewBuilder(source, destination string, releaseBuild bool) *Builder {
 		indexFile:     defaultIndexFile,
 		htmlExtension: defaultHTMLExtension,
 		jsApps:        make(map[string]string),
+		htmls:         make(map[string]*HTMLFile),
 	}
 }
 
@@ -61,45 +56,32 @@ func (b *Builder) HTMLExtension(ext string) *Builder {
 	return b
 }
 
+/*
+TODO
+1. Collect files
+2. Build/bundle scripts
+3. Inject scripts into appropriate HTMLs
+4. Render HTMLs
+*/
 func (b *Builder) Build() error {
-	start := time.Now()
 	if err := b.collectFiles(); err != nil {
-		return fmt.Errorf("error collect source files: %s", err)
+		return fmt.Errorf("error collecting html files: %s", err)
 	}
-	fmt.Printf("%d files collected in %s\n",
-		len(b.htmlFiles)+len(b.tsFiles)+len(b.jsFiles),
-		time.Since(start),
-	)
-	{
-		start := time.Now()
-		b.prepareApps()
-		b.prepareBuildOptions()
-		fmt.Printf("Apps prepared in %s\n", time.Since(start))
+	b.prepareApps()
+	b.prepareBuildOptions()
+	b.build()
+	if err := b.checkBuildErrors(); err != nil {
+		return fmt.Errorf("build failed: %s", err)
 	}
-	{
-		start := time.Now()
-		b.build()
-		if err := b.checkBuildErrors(); err != nil {
-			return fmt.Errorf("build failed: %s", err)
-		}
+	/*
 		if err := b.processJSFiles(); err != nil {
-			return fmt.Errorf("fail process js files: %s", err)
+			return fmt.Errorf("error processing scripts: %s", err)
 		}
-		fmt.Printf("JS processed in %s\n", time.Since(start))
-	}
-	{
-		start := time.Now()
 		if err := b.processHTMLFiles(); err != nil {
-			return fmt.Errorf("fail process HTML files: %s", err)
+			return fmt.Errorf("error processing HTMLs: %s", err)
 		}
-		fmt.Printf("HTML processed in %s\n", time.Since(start))
-	}
-	fmt.Printf("Build completed in %s\n", time.Since(start))
+	*/
 	return nil
-}
-
-func (b *Builder) GetSourceDirectory() string {
-	return b.source
 }
 
 func (b *Builder) collectFiles() error {
@@ -109,25 +91,27 @@ func (b *Builder) collectFiles() error {
 		}
 		switch {
 		case strings.HasSuffix(info.Name(), ".js"):
-			b.jsFiles = append(b.jsFiles, strings.TrimPrefix(path, b.source))
-		case strings.HasSuffix(info.Name(), b.htmlExtension):
-			b.htmlFiles = append(b.htmlFiles, strings.TrimPrefix(path, b.source))
+			b.scripts = append(b.scripts, strings.TrimPrefix(path, b.source))
 		case strings.HasSuffix(info.Name(), ".ts"):
-			b.tsFiles = append(b.tsFiles, strings.TrimPrefix(path, b.source))
+			b.typeScripts = append(b.typeScripts, strings.TrimPrefix(path, b.source))
+		case strings.HasSuffix(info.Name(), b.htmlExtension):
+			b.htmls[info.Name()] = NewHTMLFile(info.Name())
 		}
 		return nil
 	})
 }
 
 func (b *Builder) prepareApps() {
-	for _, file := range b.jsFiles {
-		if b.contains(b.htmlFiles, file) {
-			b.jsApps[strings.TrimSuffix(file, ".js")+b.htmlExtension] = file
+	for _, script := range b.scripts {
+		html := strings.TrimSuffix(script, ".js") + b.htmlExtension
+		if _, ok := b.htmls[html]; ok {
+			b.jsApps[html] = script
 		}
 	}
-	for _, file := range b.tsFiles {
-		if b.contains(b.htmlFiles, file) {
-			b.jsApps[strings.TrimSuffix(file, ".ts")+b.htmlExtension] = file
+	for _, script := range b.typeScripts {
+		html := strings.TrimSuffix(script, ".ts") + b.htmlExtension
+		if _, ok := b.htmls[html]; ok {
+			b.jsApps[html] = script
 		}
 	}
 }
@@ -158,25 +142,29 @@ func (b *Builder) prepareBuildOptions() {
 	var buildOptions []api.BuildOptions
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
-		buildOption.Outdir = filepath.Join(b.destination, "/js", filepath.Dir(jsFile))
-		if !strings.HasSuffix(jsFile, ".ts") {
+		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile))
+		if strings.HasSuffix(jsFile, ".js") {
 			buildOption.EntryPoints = []string{filepath.Join(b.source, jsFile)}
 			buildOptions = append(buildOptions, buildOption)
-		} else {
+		} else if strings.HasSuffix(jsFile, ".ts") {
 			buildOption.EntryPoints = []string{filepath.Join(b.source, jsFile)}
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
 			buildOption.Tsconfig = "tsconfig.json"
 			buildOptions = append(buildOptions, buildOption)
+		} else {
+			panic("unexpected file type: " + jsFile)
 		}
 	}
 	b.buildOptions = buildOptions
 }
 
 func (b *Builder) processHTMLFiles() error {
-	for _, htmlFile := range b.htmlFiles {
-		if err := b.prepareHTMLFile(htmlFile); err != nil {
-			return err
-		}
+	for _, htmlFile := range b.htmls {
+		// TODO render HTMLs
+		_ = htmlFile
+		// if err := b.prepareHTMLFile(htmlFile); err != nil {
+		// 	return err
+		// }
 	}
 	return nil
 }
@@ -200,6 +188,7 @@ func (b *Builder) checkBuildErrors() error {
 	return nil
 }
 
+/*
 func (b *Builder) processJSFiles() error {
 	for _, result := range b.buildResult {
 		for _, file := range result.OutputFiles {
@@ -232,7 +221,8 @@ func (b *Builder) processJSFiles() error {
 	}
 	return nil
 }
-
+*/
+/*
 func (b *Builder) prepareHTMLFile(htmlFile string) error {
 	htmlSrc, err := ioutil.ReadFile(filepath.Join(b.source, htmlFile))
 	if err != nil && err != io.EOF {
@@ -269,3 +259,4 @@ func (b Builder) contains(s []string, e string) bool {
 	}
 	return false
 }
+*/
