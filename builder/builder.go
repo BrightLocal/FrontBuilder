@@ -12,7 +12,7 @@ import (
 )
 
 type Builder struct {
-	source        string
+	sources       []string
 	destination   string
 	releaseBuild  bool
 	indexFile     string
@@ -35,9 +35,9 @@ type FrontBuilder interface {
 	GetSourceDirectory() string
 }
 
-func NewBuilder(source, destination string, releaseBuild bool) *Builder {
+func NewBuilder(sources []string, destination string, releaseBuild bool) *Builder {
 	return &Builder{
-		source:        strings.TrimRight(source, "/") + "/",
+		sources:       sources,
 		destination:   strings.TrimRight(destination, "/") + "/",
 		releaseBuild:  releaseBuild,
 		indexFile:     defaultIndexFile,
@@ -74,20 +74,25 @@ func (b *Builder) Build() error {
 }
 
 func (b *Builder) collectFiles() error {
-	return filepath.Walk(b.source, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
+	for _, source := range b.sources {
+		if err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+			if info.IsDir() {
+				return nil
+			}
+			switch {
+			case strings.HasSuffix(info.Name(), ".js"):
+				b.scripts = append(b.scripts, strings.TrimPrefix(path, source))
+			case strings.HasSuffix(info.Name(), ".ts"):
+				b.typeScripts = append(b.typeScripts, strings.TrimPrefix(path, source))
+			case strings.HasSuffix(info.Name(), b.htmlExtension):
+				b.htmls[strings.TrimPrefix(path, source)] = files.NewHTML(filepath.Join(source, strings.TrimPrefix(path, source)))
+			}
+			return err
+		}); err != nil {
+			return err
 		}
-		switch {
-		case strings.HasSuffix(info.Name(), ".js"):
-			b.scripts = append(b.scripts, strings.TrimPrefix(path, b.source))
-		case strings.HasSuffix(info.Name(), ".ts"):
-			b.typeScripts = append(b.typeScripts, strings.TrimPrefix(path, b.source))
-		case strings.HasSuffix(info.Name(), b.htmlExtension):
-			b.htmls[info.Name()] = files.NewHTML(b.source + info.Name())
-		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func (b *Builder) prepareApps() {
@@ -110,7 +115,11 @@ func (b *Builder) prepareBuildOptions() {
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
 		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile))
-		buildOption.EntryPoints = []string{filepath.Join(b.source, jsFile)}
+		for _, source := range b.sources {
+			if isFileExists(filepath.Join(source, jsFile)) {
+				buildOption.EntryPoints = []string{filepath.Join(source, jsFile)}
+			}
+		}
 		if strings.HasSuffix(jsFile, ".ts") {
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
 			buildOption.Tsconfig = "tsconfig.json"
@@ -141,9 +150,13 @@ func (b *Builder) checkBuildErrors() error {
 func (b *Builder) processHTMLFiles() error {
 	resultFiles := b.resultFiles()
 	for path, html := range b.htmls {
-		script := strings.TrimSuffix(path, b.htmlExtension) + ".js"
+		script := strings.TrimSuffix(filepath.Join(b.destination, path), b.htmlExtension) + ".js"
 		if content, ok := resultFiles[script]; ok {
-			html.InjectJS(files.NewJS(script, content))
+			jsFile := files.NewJS(strings.TrimPrefix(script, b.destination), content)
+			html.InjectJS(jsFile)
+			if err := jsFile.Rename(b.destination, b.releaseBuild); err != nil {
+				return err
+			}
 		}
 		if err := html.Render(filepath.Join(b.destination, path), b.releaseBuild); err != nil {
 			return err
@@ -167,6 +180,15 @@ func (b *Builder) resultFiles() map[string][]byte {
 		}
 	}
 	return htmlScripts
+}
+
+func isFileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 /*

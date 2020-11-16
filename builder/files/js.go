@@ -3,7 +3,9 @@ package files
 import (
 	"crypto/md5"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,7 +16,7 @@ type JS struct {
 
 func NewJS(destinationFile string, content []byte) *JS {
 	return &JS{
-		dst:     "/" + strings.TrimLeft(destinationFile, "/"),
+		dst:     "/" + destinationFile,
 		content: content,
 	}
 }
@@ -30,4 +32,17 @@ func (j *JS) GetScriptSource(releaseBuild bool) string {
 		hash[:4],
 		ext,
 	)
+}
+
+func (j *JS) Rename(destination string, releaseBuild bool) error {
+	if !releaseBuild {
+		return nil
+	}
+	if err := os.Rename(
+		filepath.Join(destination, j.dst),
+		filepath.Join(destination, j.GetScriptSource(releaseBuild)),
+	); err != nil {
+		return err
+	}
+	return nil
 }

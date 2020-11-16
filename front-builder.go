@@ -16,7 +16,7 @@ import (
 
 func main() {
 	cfg := configure()
-	frontBuilder := builder.NewBuilder(cfg.Source[0], cfg.Destination, cfg.IsProduction())
+	frontBuilder := builder.NewBuilder(cfg.Source, cfg.Destination, cfg.IsProduction())
 	if cfg.HTMLExtension != "" {
 		frontBuilder.HTMLExtension(cfg.HTMLExtension)
 	}
