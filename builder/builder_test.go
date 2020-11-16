@@ -29,3 +29,20 @@ func TestPrepareApps(t *testing.T) {
 		"app/index.html": "app/index.js",
 	}, b.jsApps)
 }
+
+func TestCollect(t *testing.T) {
+	sources := []string{
+		"../test-projects/large/scripts",
+		"../test-projects/large/templates",
+	}
+	b := NewBuilder(sources, "", false)
+	if assert.NoError(t, b.collectFiles()) {
+		assert.Equal(t, []string{
+			"../test-projects/large/scripts/",
+			"../test-projects/large/templates/",
+		}, b.sources)
+		assert.Equal(t, []string{"app2/app2.js"}, b.scripts)
+		assert.Equal(t, []string{"app1/app1.ts", "index.ts"}, b.typeScripts)
+		assert.Equal(t, 3, len(b.htmls))
+	}
+}
