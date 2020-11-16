@@ -130,9 +130,7 @@ func (b *Builder) prepareBuildOptions() {
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
 		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile.Path))
-		for _, source := range b.sources {
-			buildOption.EntryPoints = []string{filepath.Join(source, jsFile.BaseDir, jsFile.Path)}
-		}
+		buildOption.EntryPoints = []string{filepath.Join(jsFile.BaseDir, jsFile.Path)}
 		if strings.HasSuffix(jsFile.Path, ".ts") {
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
 			buildOption.Tsconfig = "tsconfig.json"
@@ -194,85 +192,3 @@ func (b *Builder) resultFiles() map[string][]byte {
 	}
 	return htmlScripts
 }
-
-func isFileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-/*
-func (b *Builder) processJSFiles() error {
-	for _, result := range b.buildResult {
-		for _, file := range result.OutputFiles {
-			dir, fileName := filepath.Split(file.Path)
-			if b.releaseBuild {
-				if !strings.HasSuffix(file.Path, ".map") {
-					hashSum := md5.Sum(file.Contents)
-					fileHash := fmt.Sprintf("%x", hashSum)[:8]
-					ext := path.Ext(fileName)
-					outfile := dir + fileName[0:len(fileName)-len(ext)] + "." + fileHash + ".js"
-					if err := os.Rename(file.Path, outfile); err != nil {
-						return err
-					}
-					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js")+"/")
-					htmlFile := strings.TrimSuffix(compiledFile, ".js") + b.htmlExtension
-					if val, ok := b.jsApps[htmlFile]; ok && val != "" {
-						b.jsApps[htmlFile] = outfile
-					}
-				}
-			} else {
-				if !strings.HasSuffix(file.Path, ".map") {
-					compiledFile := strings.TrimPrefix(file.Path, filepath.Join(b.destination, "/js")+"/")
-					htmlFile := strings.TrimSuffix(compiledFile, ".js") + b.htmlExtension
-					if val, ok := b.jsApps[htmlFile]; ok && val != "" {
-						b.jsApps[htmlFile] = strings.TrimPrefix(file.Path, b.destination)
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-*/
-/*
-func (b *Builder) prepareHTMLFile(htmlFile string) error {
-	htmlSrc, err := ioutil.ReadFile(filepath.Join(b.source, htmlFile))
-	if err != nil && err != io.EOF {
-		return err
-	}
-	if jsFile, ok := b.jsApps[htmlFile]; ok {
-		filename := strings.TrimPrefix(jsFile, b.destination)
-		if filepath.Base(htmlFile) == b.indexFile {
-			scriptTag := []byte(`<script src=""></script>`)
-			if bytes.Contains(htmlSrc, scriptTag) {
-				htmlSrc = bytes.Replace(htmlSrc, []byte(`src=""`), []byte(`src="/`+filename+`"`), -1)
-			}
-		} else {
-			scriptTag := []byte("\n{{ define \"js-app\" }}<script src=\"/" + filename + "\"></script>{{ end }}\n")
-			htmlSrc = append(htmlSrc, scriptTag...)
-		}
-	}
-	dst := filepath.Join(b.destination, "views", htmlFile)
-	if err := os.MkdirAll(filepath.Dir(dst), 0770); err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(dst, htmlSrc, 0644); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (b Builder) contains(s []string, e string) bool {
-	for _, htmlFile := range s {
-		if htmlPath := strings.TrimSuffix(htmlFile, b.htmlExtension); htmlPath == strings.TrimSuffix(e, ".js") ||
-			htmlPath == strings.TrimSuffix(e, ".ts") {
-			return true
-		}
-	}
-	return false
-}
-*/
