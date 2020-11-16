@@ -11,16 +11,21 @@ import (
 	"github.com/evanw/esbuild/pkg/api"
 )
 
+type sourcePath struct {
+	BaseDir string
+	Path    string
+}
+
 type Builder struct {
 	sources       []string
 	destination   string
 	releaseBuild  bool
 	indexFile     string
 	htmlExtension string
-	scripts       []string
-	typeScripts   []string
+	scripts       []sourcePath
+	typeScripts   []sourcePath
 	htmls         map[string]*files.HTML
-	jsApps        map[string]string
+	jsApps        map[string]sourcePath
 	buildOptions  []api.BuildOptions
 	buildResult   []api.BuildResult
 }
@@ -42,7 +47,7 @@ func NewBuilder(sources []string, destination string, releaseBuild bool) *Builde
 		releaseBuild:  releaseBuild,
 		indexFile:     defaultIndexFile,
 		htmlExtension: defaultHTMLExtension,
-		jsApps:        make(map[string]string),
+		jsApps:        make(map[string]sourcePath),
 		htmls:         make(map[string]*files.HTML),
 	}
 }
@@ -81,11 +86,21 @@ func (b *Builder) collectFiles() error {
 			}
 			switch {
 			case strings.HasSuffix(info.Name(), ".js"):
-				b.scripts = append(b.scripts, strings.TrimPrefix(path, source))
+				b.scripts = append(b.scripts, sourcePath{
+					BaseDir: source,
+					Path:    strings.TrimPrefix(path, source),
+				})
 			case strings.HasSuffix(info.Name(), ".ts"):
-				b.typeScripts = append(b.typeScripts, strings.TrimPrefix(path, source))
+				b.typeScripts = append(b.typeScripts, sourcePath{
+					BaseDir: source,
+					Path:    strings.TrimPrefix(path, source),
+				})
 			case strings.HasSuffix(info.Name(), b.htmlExtension):
-				b.htmls[strings.TrimPrefix(path, source)] = files.NewHTML(filepath.Join(source, strings.TrimPrefix(path, source)))
+				name := strings.TrimPrefix(path, source)
+				if _, ok := b.htmls[name]; ok {
+					return errors.New("duplicate source: " + name)
+				}
+				b.htmls[name] = files.NewHTML(filepath.Join(source, strings.TrimPrefix(path, source)))
 			}
 			return err
 		}); err != nil {
@@ -97,13 +112,13 @@ func (b *Builder) collectFiles() error {
 
 func (b *Builder) prepareApps() {
 	for _, script := range b.scripts {
-		html := strings.TrimSuffix(script, ".js") + b.htmlExtension
+		html := strings.TrimSuffix(script.Path, ".js") + b.htmlExtension
 		if _, ok := b.htmls[html]; ok {
 			b.jsApps[html] = script
 		}
 	}
 	for _, script := range b.typeScripts {
-		html := strings.TrimSuffix(script, ".ts") + b.htmlExtension
+		html := strings.TrimSuffix(script.Path, ".ts") + b.htmlExtension
 		if _, ok := b.htmls[html]; ok {
 			b.jsApps[html] = script
 		}
@@ -114,13 +129,11 @@ func (b *Builder) prepareBuildOptions() {
 	var buildOptions []api.BuildOptions
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
-		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile))
+		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile.Path))
 		for _, source := range b.sources {
-			if isFileExists(filepath.Join(source, jsFile)) {
-				buildOption.EntryPoints = []string{filepath.Join(source, jsFile)}
-			}
+			buildOption.EntryPoints = []string{filepath.Join(source, jsFile.BaseDir, jsFile.Path)}
 		}
-		if strings.HasSuffix(jsFile, ".ts") {
+		if strings.HasSuffix(jsFile.Path, ".ts") {
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
 			buildOption.Tsconfig = "tsconfig.json"
 		}
