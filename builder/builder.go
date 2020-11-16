@@ -110,7 +110,9 @@ func (b *Builder) collectFiles() error {
 			case strings.HasSuffix(info.Name(), b.htmlExtension):
 				name := strings.TrimPrefix(path, source)
 				if _, ok := b.htmls[name]; ok {
-					return errors.New("duplicate source: " + name)
+					if b.releaseBuild {
+						return errors.New("duplicate source: " + name)
+					}
 				}
 				b.htmls[name] = files.NewHTML(filepath.Join(source, strings.TrimPrefix(path, source)))
 			}
@@ -162,7 +164,9 @@ func (b *Builder) checkBuildErrors() error {
 	for _, result := range b.buildResult {
 		if len(result.Errors) > 0 {
 			for _, err := range result.Errors {
-				fmt.Printf("Error in %s:%d: %s\n", err.Location.File, err.Location.Line, err.Text)
+				if err.Location != nil {
+					fmt.Printf("Error in %s:%d: %s\n", err.Location.File, err.Location.Line, err.Text)
+				}
 			}
 			return errors.New("errors on build process. check above messages")
 		}
