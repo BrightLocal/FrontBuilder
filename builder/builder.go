@@ -22,6 +22,8 @@ type Builder struct {
 	releaseBuild  bool
 	indexFile     string
 	htmlExtension string
+	scriptsPrefix string
+	htmlPrefix    string
 	scripts       []sourcePath
 	typeScripts   []sourcePath
 	htmls         map[string]*files.HTML
@@ -59,6 +61,16 @@ func (b *Builder) IndexFile(fileName string) *Builder {
 
 func (b *Builder) HTMLExtension(ext string) *Builder {
 	b.htmlExtension = "." + strings.TrimLeft(ext, ".")
+	return b
+}
+
+func (b *Builder) ScriptsPrefix(scriptsPrefix string) *Builder {
+	b.scriptsPrefix = scriptsPrefix
+	return b
+}
+
+func (b *Builder) HTMLPrefix(htmlPrefix string) *Builder {
+	b.htmlPrefix = htmlPrefix
 	return b
 }
 
@@ -129,7 +141,7 @@ func (b *Builder) prepareBuildOptions() {
 	var buildOptions []api.BuildOptions
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
-		buildOption.Outdir = filepath.Join(b.destination, filepath.Dir(jsFile.Path))
+		buildOption.Outdir = filepath.Join(b.destination, b.scriptsPrefix, filepath.Dir(jsFile.Path))
 		buildOption.EntryPoints = []string{filepath.Join(jsFile.BaseDir, jsFile.Path)}
 		if strings.HasSuffix(jsFile.Path, ".ts") {
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
@@ -161,7 +173,7 @@ func (b *Builder) checkBuildErrors() error {
 func (b *Builder) processHTMLFiles() error {
 	resultFiles := b.resultFiles()
 	for path, html := range b.htmls {
-		script := strings.TrimSuffix(filepath.Join(b.destination, path), b.htmlExtension) + ".js"
+		script := strings.TrimSuffix(filepath.Join(b.destination, b.scriptsPrefix, path), b.htmlExtension) + ".js"
 		if content, ok := resultFiles[script]; ok {
 			jsFile := files.NewJS(strings.TrimPrefix(script, b.destination), content)
 			html.InjectJS(jsFile)
@@ -169,7 +181,7 @@ func (b *Builder) processHTMLFiles() error {
 				return err
 			}
 		}
-		if err := html.Render(filepath.Join(b.destination, path), b.releaseBuild); err != nil {
+		if err := html.Render(filepath.Join(b.destination, b.htmlPrefix, path), b.releaseBuild); err != nil {
 			return err
 		}
 	}

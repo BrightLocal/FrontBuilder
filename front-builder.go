@@ -23,6 +23,8 @@ func main() {
 	if cfg.IndexFile != "" {
 		frontBuilder.IndexFile(cfg.IndexFile)
 	}
+	frontBuilder.ScriptsPrefix(cfg.ScriptsPrefix)
+	frontBuilder.HTMLPrefix(cfg.HTMLPrefix)
 	if err := frontBuilder.Build(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -61,6 +63,8 @@ type config struct {
 	Destination   string
 	IndexFile     string
 	HTMLExtension string
+	ScriptsPrefix string
+	HTMLPrefix    string
 }
 
 func (c config) IsProduction() bool {
@@ -78,6 +82,8 @@ func (c *config) readFile() error {
 		Destination   string      `json:"destination"`
 		IndexFile     string      `json:"index_file"`
 		HTMLExtension string      `json:"html_extension"`
+		ScriptsPrefix string      `json:"scripts_prefix"`
+		HTMLPrefix    string      `json:"html_prefix"`
 	}
 	var fc fConfig
 	if err = json.NewDecoder(f).Decode(&fc); err != nil {
@@ -97,8 +103,10 @@ func (c *config) readFile() error {
 		return errors.New("source can be either string or array of strings")
 	}
 	c.Destination = fc.Destination
-	c.IndexFile = fc.HTMLExtension
+	c.IndexFile = fc.IndexFile
 	c.HTMLExtension = fc.HTMLExtension
+	c.ScriptsPrefix = fc.ScriptsPrefix
+	c.HTMLPrefix = fc.HTMLPrefix
 	return nil
 }
 
