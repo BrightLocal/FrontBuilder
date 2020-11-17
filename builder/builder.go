@@ -49,8 +49,6 @@ func NewBuilder(sources []string, destination string, releaseBuild bool) *Builde
 		releaseBuild:  releaseBuild,
 		indexFile:     defaultIndexFile,
 		htmlExtension: defaultHTMLExtension,
-		jsApps:        make(map[string]sourcePath),
-		htmls:         make(map[string]*files.HTML),
 	}
 }
 
@@ -75,6 +73,8 @@ func (b *Builder) HTMLPrefix(htmlPrefix string) *Builder {
 }
 
 func (b *Builder) Build() error {
+	b.jsApps = make(map[string]sourcePath)
+	b.htmls = make(map[string]*files.HTML)
 	if err := b.collectFiles(); err != nil {
 		return fmt.Errorf("error collecting files: %s", err)
 	}
