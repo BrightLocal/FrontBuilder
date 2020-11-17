@@ -117,14 +117,14 @@ func TestPrepareApps(t *testing.T) {
 
 func TestCollect(t *testing.T) {
 	var testCases = map[string][]string{
-		"default_app": []string{
+		"default_app": {
 			"../test-projects/default/app",
 		},
-		"large_app": []string{
+		"large_app": {
 			"../test-projects/large/scripts",
 			"../test-projects/large/templates",
 		},
-		"minimal_app": []string{
+		"minimal_app": {
 			"../test-projects/minimal/source",
 		},
 	}
