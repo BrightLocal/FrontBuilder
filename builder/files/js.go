@@ -10,39 +10,33 @@ import (
 )
 
 type JS struct {
-	dst     string
-	content []byte
+	destination string
+	builtScript string
+	content     []byte
 }
 
-func NewJS(destinationFile string, content []byte) *JS {
+func NewJS(destination, scriptFile string, content []byte) *JS {
 	return &JS{
-		dst:     "/" + destinationFile,
-		content: content,
+		destination: destination,
+		builtScript: scriptFile,
+		content:     content,
 	}
 }
 
-func (j *JS) GetScriptSource(releaseBuild bool) string {
+func (j *JS) GetScriptSource(releaseBuild bool) (string, error) {
+	filePath := strings.TrimPrefix(j.builtScript, j.destination)
 	if !releaseBuild {
-		return j.dst
+		return filePath, nil
 	}
-	ext := path.Ext(j.dst)
+	ext := path.Ext(filePath)
 	hash := md5.Sum(j.content)
-	return fmt.Sprintf("%s.%x%s",
-		strings.TrimSuffix(j.dst, ext),
+	source := fmt.Sprintf("%s.%x%s",
+		strings.TrimSuffix(filePath, ext),
 		hash[:4],
 		ext,
 	)
-}
-
-func (j *JS) Rename(destination string, releaseBuild bool) error {
-	if !releaseBuild {
-		return nil
+	if err := os.Rename(j.builtScript, filepath.Join(j.destination, source)); err != nil {
+		return "", err
 	}
-	if err := os.Rename(
-		filepath.Join(destination, j.dst),
-		filepath.Join(destination, j.GetScriptSource(releaseBuild)),
-	); err != nil {
-		return err
-	}
-	return nil
+	return source, nil
 }

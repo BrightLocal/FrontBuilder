@@ -179,11 +179,7 @@ func (b *Builder) processHTMLFiles() error {
 	for path, html := range b.htmls {
 		script := strings.TrimSuffix(filepath.Join(b.destination, b.scriptsPrefix, path), b.htmlExtension) + ".js"
 		if content, ok := resultFiles[script]; ok {
-			jsFile := files.NewJS(strings.TrimPrefix(script, b.destination), content)
-			html.InjectJS(jsFile)
-			if err := jsFile.Rename(b.destination, b.releaseBuild); err != nil {
-				return err
-			}
+			html.InjectJS(files.NewJS(b.destination, script, content))
 		}
 		if err := html.Render(filepath.Join(b.destination, b.htmlPrefix, path), b.releaseBuild); err != nil {
 			return err

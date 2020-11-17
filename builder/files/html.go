@@ -29,10 +29,14 @@ func (h *HTML) Render(destinationFile string, releaseBuild bool) error {
 		return err
 	}
 	if s := h.script; s != nil {
+		script, err := s.GetScriptSource(releaseBuild)
+		if err != nil {
+			return err
+		}
 		html = bytes.ReplaceAll(
 			html,
 			appPlaceholder,
-			[]byte(`<script src="`+s.GetScriptSource(releaseBuild)+`"></script>`),
+			[]byte(`<script src="`+script+`"></script>`),
 		)
 	}
 	if err := os.MkdirAll(filepath.Dir(destinationFile), 0750); err != nil {
