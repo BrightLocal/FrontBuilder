@@ -11,7 +11,7 @@ import (
 )
 
 func TestHTML(t *testing.T) {
-	const root = "./test_files"
+	const root = "./test_files/"
 	testCases := []struct {
 		htmlFile     string
 		scriptFile   string
@@ -20,15 +20,15 @@ func TestHTML(t *testing.T) {
 		expectToFind string
 	}{
 		{
-			htmlFile:     "/source.html",
-			scriptFile:   "/script.js",
+			htmlFile:     "source.html",
+			scriptFile:   "script.js",
 			outFile:      "out.html",
 			release:      false,
 			expectToFind: `src="/script.js"`,
 		},
 		{
-			htmlFile:     "/source.html",
-			scriptFile:   "/script.js",
+			htmlFile:     "source.html",
+			scriptFile:   "script.js",
 			outFile:      "out.html",
 			release:      true,
 			expectToFind: `src="/script.cd4d3d46.js"`,
@@ -46,7 +46,7 @@ func TestHTML(t *testing.T) {
 			}
 		}
 	}
-	if err := os.Rename(root+"/script.cd4d3d46.js", root+"/script.js"); err != nil {
+	if err := os.Rename(root+"script.cd4d3d46.js", root+"script.js"); err != nil {
 		log.Fatal(err)
 	}
 }

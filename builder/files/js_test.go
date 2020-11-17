@@ -9,8 +9,8 @@ import (
 )
 
 func TestJSFile(t *testing.T) {
-	const root = "./test_files"
-	j := NewJS(root, root+"/script.js", []byte("console.log('hello');\n"))
+	const root = "./test_files/"
+	j := NewJS(root, root+"script.js", []byte("console.log('hello');\n"))
 	script, err := j.GetScriptSource(true)
 	if err != nil {
 		assert.Fail(t, err.Error())

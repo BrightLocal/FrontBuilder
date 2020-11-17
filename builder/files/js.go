@@ -24,7 +24,7 @@ func NewJS(destination, scriptFile string, content []byte) *JS {
 }
 
 func (j *JS) GetScriptSource(releaseBuild bool) (string, error) {
-	filePath := strings.TrimPrefix(j.builtScript, j.destination)
+	filePath := "/" + strings.TrimPrefix(j.builtScript, j.destination)
 	if !releaseBuild {
 		return filePath, nil
 	}
