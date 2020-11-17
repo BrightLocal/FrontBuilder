@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/BrightLocal/FrontBuilder/builder"
 	"github.com/BrightLocal/FrontBuilder/config"
@@ -11,6 +12,8 @@ import (
 )
 
 func main() {
+	start := time.Now()
+	log.Println("Start build process")
 	cfg := config.Configure()
 	frontBuilder := builder.NewBuilder(cfg.Source, cfg.Destination, cfg.IsProduction())
 	if cfg.HTMLExtension != "" {
@@ -25,6 +28,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	log.Printf("Build finished: %s", time.Since(start))
 	if cfg.Watch {
 		buildWatcher, err := watcher.NewBuildWatcher()
 		if err != nil {
