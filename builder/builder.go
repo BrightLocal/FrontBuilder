@@ -73,8 +73,6 @@ func (b *Builder) HTMLPrefix(htmlPrefix string) *Builder {
 }
 
 func (b *Builder) Build() error {
-	b.jsApps = make(map[string]sourcePath)
-	b.htmls = make(map[string]*files.HTML)
 	if err := b.collectFiles(); err != nil {
 		return fmt.Errorf("error collecting files: %s", err)
 	}
@@ -91,6 +89,8 @@ func (b *Builder) Build() error {
 }
 
 func (b *Builder) collectFiles() error {
+	b.jsApps = make(map[string]sourcePath)
+	b.htmls = make(map[string]*files.HTML)
 	for _, source := range b.sources {
 		if err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
