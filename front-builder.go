@@ -30,28 +30,25 @@ func main() {
 	}
 	log.Printf("Build finished: %s", time.Since(start))
 	if cfg.Watch {
-		buildWatcher, err := watcher.NewBuildWatcher()
+		buildWatcher, err := watcher.NewBuildWatcher(cfg.Source)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		allEvents := make(chan struct{})
-		for _, src := range cfg.Source {
-			events, err := buildWatcher.Watch(src)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-			go func(e chan struct{}) {
-				for event := range e {
-					allEvents <- event
+		done := make(chan struct{})
+		events, err := buildWatcher.Watch()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		go func(e chan struct{}) {
+			for range e {
+				log.Println("Rebuild project files")
+				if err = frontBuilder.Build(); err != nil {
+					log.Printf("error rebuilding files: %s", err)
 				}
-			}(events)
-		}
-		for range allEvents {
-			if err = frontBuilder.Build(); err != nil {
-				log.Printf("error rebuilding files: %s", err)
 			}
-		}
+		}(events)
+		<-done
 	}
 }
