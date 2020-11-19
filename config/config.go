@@ -11,14 +11,15 @@ import (
 )
 
 type Config struct {
-	Env           string
-	Watch         bool
-	Source        []string
-	Destination   string
-	IndexFile     string
-	HTMLExtension string
-	ScriptsPrefix string
-	HTMLPrefix    string
+	Env              string
+	Watch            bool
+	Source           []string
+	Destination      string
+	IndexFile        string
+	HTMLExtension    string
+	ScriptsPrefix    string
+	HTMLPrefix       string
+	TypeScriptConfig string
 }
 
 func Configure() Config {
@@ -82,12 +83,13 @@ func (c *Config) readConfigFile() error {
 	}
 	defer func() { _ = f.Close() }()
 	type fConfig struct {
-		Source        interface{} `json:"source"`
-		Destination   string      `json:"destination"`
-		IndexFile     string      `json:"index_file"`
-		HTMLExtension string      `json:"html_extension"`
-		ScriptsPrefix string      `json:"scripts_prefix"`
-		HTMLPrefix    string      `json:"html_prefix"`
+		Source           interface{} `json:"source"`
+		Destination      string      `json:"destination"`
+		IndexFile        string      `json:"index_file"`
+		HTMLExtension    string      `json:"html_extension"`
+		ScriptsPrefix    string      `json:"scripts_prefix"`
+		HTMLPrefix       string      `json:"html_prefix"`
+		TypeScriptConfig string      `json:"type_script_config"`
 	}
 	var fc fConfig
 	if err = json.NewDecoder(f).Decode(&fc); err != nil {
@@ -111,6 +113,7 @@ func (c *Config) readConfigFile() error {
 	c.HTMLExtension = fc.HTMLExtension
 	c.ScriptsPrefix = fc.ScriptsPrefix
 	c.HTMLPrefix = fc.HTMLPrefix
+	c.TypeScriptConfig = fc.TypeScriptConfig
 	return nil
 }
 

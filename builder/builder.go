@@ -17,24 +17,26 @@ type sourcePath struct {
 }
 
 type Builder struct {
-	sources       []string
-	destination   string
-	releaseBuild  bool
-	indexFile     string
-	htmlExtension string
-	scriptsPrefix string
-	htmlPrefix    string
-	scripts       []sourcePath
-	typeScripts   []sourcePath
-	htmls         map[string]*files.HTML
-	jsApps        map[string]sourcePath
-	buildOptions  []api.BuildOptions
-	buildResult   []api.BuildResult
+	sources          []string
+	destination      string
+	releaseBuild     bool
+	indexFile        string
+	htmlExtension    string
+	scriptsPrefix    string
+	htmlPrefix       string
+	typeScriptConfig string
+	scripts          []sourcePath
+	typeScripts      []sourcePath
+	htmls            map[string]*files.HTML
+	jsApps           map[string]sourcePath
+	buildOptions     []api.BuildOptions
+	buildResult      []api.BuildResult
 }
 
 const (
-	defaultIndexFile     = "index.html"
-	defaultHTMLExtension = ".html"
+	defaultIndexFile        = "index.html"
+	defaultHTMLExtension    = ".html"
+	defaultTypeScriptConfig = "tsconfig.json"
 )
 
 type FrontBuilder interface {
@@ -44,11 +46,12 @@ type FrontBuilder interface {
 
 func NewBuilder(sources []string, destination string, releaseBuild bool) *Builder {
 	return &Builder{
-		sources:       sources,
-		destination:   strings.TrimRight(destination, "/") + "/",
-		releaseBuild:  releaseBuild,
-		indexFile:     defaultIndexFile,
-		htmlExtension: defaultHTMLExtension,
+		sources:          sources,
+		destination:      strings.TrimRight(destination, "/") + "/",
+		releaseBuild:     releaseBuild,
+		indexFile:        defaultIndexFile,
+		htmlExtension:    defaultHTMLExtension,
+		typeScriptConfig: defaultTypeScriptConfig,
 	}
 }
 
@@ -69,6 +72,11 @@ func (b *Builder) ScriptsPrefix(scriptsPrefix string) *Builder {
 
 func (b *Builder) HTMLPrefix(htmlPrefix string) *Builder {
 	b.htmlPrefix = htmlPrefix
+	return b
+}
+
+func (b *Builder) TypeScriptConfig(path string) *Builder {
+	b.typeScriptConfig = path
 	return b
 }
 
@@ -147,7 +155,7 @@ func (b *Builder) prepareBuildOptions() {
 		buildOption.EntryPoints = []string{filepath.Join(jsFile.BaseDir, jsFile.Path)}
 		if strings.HasSuffix(jsFile.Path, ".ts") {
 			buildOption.Loader = map[string]api.Loader{".ts": api.LoaderTS}
-			buildOption.Tsconfig = "tsconfig.json"
+			buildOption.Tsconfig = b.typeScriptConfig
 		}
 		buildOptions = append(buildOptions, buildOption)
 	}

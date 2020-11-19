@@ -24,6 +24,7 @@ func main() {
 	}
 	frontBuilder.ScriptsPrefix(cfg.ScriptsPrefix)
 	frontBuilder.HTMLPrefix(cfg.HTMLPrefix)
+	frontBuilder.TypeScriptConfig(cfg.TypeScriptConfig)
 	if err := frontBuilder.Build(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
