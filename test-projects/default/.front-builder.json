@@ -1,0 +1,8 @@
+{
+  "source": [
+    "./app"
+  ],
+  "destination": "./destination",
+  "index_file": "index.html",
+  "html_extension": "html"
+}

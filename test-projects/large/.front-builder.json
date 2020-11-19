@@ -5,6 +5,8 @@
     "./styles"
   ],
   "destination": "./destination",
-  "index_file": "home.html",
-  "html_extension": "html"
+  "index_file": "index.html",
+  "html_extension": "html",
+  "scripts_prefix": "js/",
+  "html_prefix": "html/"
 }
