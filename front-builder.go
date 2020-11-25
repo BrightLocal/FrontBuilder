@@ -29,7 +29,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Printf("Build finished: %s", time.Since(start))
+	fmt.Printf("Build finished: %s\n", time.Since(start))
 	if cfg.Watch {
 		buildWatcher, err := watcher.NewBuildWatcher(cfg.Source)
 		if err != nil {
