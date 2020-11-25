@@ -13,7 +13,7 @@ import (
 
 func main() {
 	start := time.Now()
-	log.Println("Start build process")
+	fmt.Println("Start build process")
 	cfg := config.Configure()
 	frontBuilder := builder.NewBuilder(cfg.Source, cfg.Destination, cfg.IsProduction())
 	if cfg.HTMLExtension != "" {
@@ -29,7 +29,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	log.Printf("Build finished: %s", time.Since(start))
+	fmt.Printf("Build finished: %s", time.Since(start))
 	if cfg.Watch {
 		buildWatcher, err := watcher.NewBuildWatcher(cfg.Source)
 		if err != nil {
