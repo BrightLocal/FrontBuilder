@@ -37,7 +37,7 @@ pipeline {
         }
         stage('Creating coverage shell script') {
             when {
-                expression { GIT_BRANCH == 'master' }
+                expression { GIT_BRANCH == 'main' }
             }
             steps {
                 echo 'Create script'
@@ -46,7 +46,7 @@ pipeline {
         }
         stage('Copy coverage shell script') {
             when {
-                expression { GIT_BRANCH == 'master' }
+                expression { GIT_BRANCH == 'main' }
             }
             steps {
                 echo 'Copy script'
@@ -55,7 +55,7 @@ pipeline {
         }
         stage('Run sh') {
             when {
-                expression { GIT_BRANCH == 'master' }
+                expression { GIT_BRANCH == 'main' }
             }
             steps {
                 echo 'Run sh script'
@@ -64,7 +64,7 @@ pipeline {
         }
         stage('Deploy badge') {
             when {
-                expression { GIT_BRANCH == 'master' }
+                expression { GIT_BRANCH == 'main' }
             }
             steps {
                 sshagent (credentials: ['deploy-as-sites-key']) {
