@@ -1,3 +1,6 @@
+[![Build Status](https://ci.bll-i.co.uk/buildStatus/icon?job=FrontBuilder/master)](https://ci.bll-i.co.uk/job/FrontBuilder/job/master)
+[![Test Coverage](https://ci.bll-i.co.uk/coverage/badges/FrontBuilder/coverage_badge.svg)](https://ci.bll-i.co.uk/coverage/badges/FrontBuilder/coverage_badge.svg)
+
 # FrontBuilder
 Fast frontend assets builder/bundler
 
