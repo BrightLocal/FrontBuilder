@@ -120,12 +120,12 @@ func (b *Builder) collectFiles() error {
 func (b *Builder) collectFileTypes(fileInfo os.FileInfo, source, path string) error {
 	switch {
 	case strings.HasSuffix(fileInfo.Name(), ".js"):
-		b.scripts[fileInfo.Name()] = sourcePath{
+		b.scripts[path] = sourcePath{
 			BaseDir: source,
 			Path:    strings.TrimPrefix(path, source),
 		}
 	case strings.HasSuffix(fileInfo.Name(), ".ts"):
-		b.typeScripts[fileInfo.Name()] = sourcePath{
+		b.typeScripts[path] = sourcePath{
 			BaseDir: source,
 			Path:    strings.TrimPrefix(path, source),
 		}

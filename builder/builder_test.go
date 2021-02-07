@@ -15,21 +15,23 @@ func TestPrepareApps(t *testing.T) {
 	if err != nil {
 		log.Fatalf("error get working dir %s", err)
 	}
+	defaultProjectFilePath := filepath.Join(path, "test-project", "default", "app")
+	largeProjectFilePath := filepath.Join(path, "test-project", "large", "scripts")
 	var testCases = map[string]Builder{
 		"default_app": {
 			htmlExtension: ".html",
-			scripts: []sourcePath{
-				{
+			scripts: map[string]sourcePath{
+				defaultProjectFilePath + "app2.js": {
 					BaseDir: filepath.Join(path, "test-project", "default", "app"),
 					Path:    "/app2.js",
 				},
 			},
-			typeScripts: []sourcePath{
-				{
+			typeScripts: map[string]sourcePath{
+				defaultProjectFilePath + "index.ts": {
 					BaseDir: filepath.Join(path, "test-project", "default", "app"),
 					Path:    "/index.ts",
 				},
-				{
+				defaultProjectFilePath + "app1.ts": {
 					BaseDir: filepath.Join(path, "test-project", "default", "app"),
 					Path:    "/app1.ts",
 				},
@@ -43,18 +45,18 @@ func TestPrepareApps(t *testing.T) {
 		},
 		"large_app": {
 			htmlExtension: ".html",
-			scripts: []sourcePath{
-				{
+			scripts: map[string]sourcePath{
+				largeProjectFilePath + "app2/app2.js": {
 					BaseDir: filepath.Join(path, "test-project", "large", "scripts"),
 					Path:    "app2/app2.js",
 				},
 			},
-			typeScripts: []sourcePath{
-				{
+			typeScripts: map[string]sourcePath{
+				largeProjectFilePath + "index.ts": {
 					BaseDir: filepath.Join(path, "test-project", "large", "scripts"),
 					Path:    "/index.ts",
 				},
-				{
+				largeProjectFilePath + "app1/app1.ts": {
 					BaseDir: filepath.Join(path, "test-project", "large", "scripts"),
 					Path:    "app1/app1.ts",
 				},
@@ -68,8 +70,8 @@ func TestPrepareApps(t *testing.T) {
 		},
 		"minimal_app": {
 			htmlExtension: ".htm",
-			scripts:       []sourcePath{},
-			typeScripts:   []sourcePath{},
+			scripts:       map[string]sourcePath{},
+			typeScripts:   map[string]sourcePath{},
 			htmls: map[string]*files.HTML{
 				"source/index.htm": {},
 			},
@@ -130,26 +132,26 @@ func TestCollect(t *testing.T) {
 	}
 	var testResults = map[string]struct {
 		sources     []string
-		scripts     []sourcePath
-		typeScripts []sourcePath
+		scripts     map[string]sourcePath
+		typeScripts map[string]sourcePath
 		htmls       int
 	}{
 		"default_app": {
 			sources: []string{
 				"../test-projects/default/app",
 			},
-			scripts: []sourcePath{
-				{
+			scripts: map[string]sourcePath{
+				"../test-projects/default/app/app2.js": {
 					BaseDir: "../test-projects/default/app",
 					Path:    "/app2.js",
 				},
 			},
-			typeScripts: []sourcePath{
-				{
+			typeScripts: map[string]sourcePath{
+				"../test-projects/default/app/app1.ts": {
 					BaseDir: "../test-projects/default/app",
 					Path:    "/app1.ts",
 				},
-				{
+				"../test-projects/default/app/index.ts": {
 					BaseDir: "../test-projects/default/app",
 					Path:    "/index.ts",
 				},
@@ -161,18 +163,18 @@ func TestCollect(t *testing.T) {
 				"../test-projects/large/scripts",
 				"../test-projects/large/templates",
 			},
-			scripts: []sourcePath{
-				{
+			scripts: map[string]sourcePath{
+				"../test-projects/large/scripts/app2/app2.js": {
 					BaseDir: "../test-projects/large/scripts",
 					Path:    "/app2/app2.js",
 				},
 			},
-			typeScripts: []sourcePath{
-				{
+			typeScripts: map[string]sourcePath{
+				"../test-projects/large/scripts/app1/app1.ts": {
 					BaseDir: "../test-projects/large/scripts",
 					Path:    "/app1/app1.ts",
 				},
-				{
+				"../test-projects/large/scripts/index.ts": {
 					BaseDir: "../test-projects/large/scripts",
 					Path:    "/index.ts",
 				},
@@ -183,8 +185,8 @@ func TestCollect(t *testing.T) {
 			sources: []string{
 				"../test-projects/minimal/source",
 			},
-			scripts:     nil,
-			typeScripts: nil,
+			scripts:     map[string]sourcePath{},
+			typeScripts: map[string]sourcePath{},
 			htmls:       1,
 		},
 	}
