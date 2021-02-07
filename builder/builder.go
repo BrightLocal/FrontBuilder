@@ -100,18 +100,6 @@ func (b *Builder) Build() error {
 	return nil
 }
 
-func (b *Builder) Rebuild() error {
-	b.prepareApps()
-	b.build()
-	if err := b.checkBuildErrors(); err != nil {
-		return fmt.Errorf("build failed: %s", err)
-	}
-	if err := b.processHTMLFiles(); err != nil {
-		return fmt.Errorf("error processing HTMLs: %s", err)
-	}
-	return nil
-}
-
 func (b *Builder) collectFiles() error {
 	for _, source := range b.sources {
 		if err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
@@ -170,6 +158,7 @@ func (b *Builder) prepareApps() {
 
 func (b *Builder) prepareBuildOptions() {
 	var buildOptions []api.BuildOptions
+	b.buildOptions = []api.BuildOptions{}
 	for _, jsFile := range b.jsApps {
 		buildOption := b.getDefaultBuildOption()
 		buildOption.Outdir = filepath.Join(b.destination, b.scriptsPrefix, filepath.Dir(jsFile.Path))
@@ -184,6 +173,7 @@ func (b *Builder) prepareBuildOptions() {
 }
 
 func (b *Builder) build() {
+	b.buildResult = []api.BuildResult{}
 	for _, buildOption := range b.buildOptions {
 		b.buildResult = append(b.buildResult, api.Build(buildOption))
 	}
