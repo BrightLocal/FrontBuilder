@@ -25,8 +25,8 @@ type Builder struct {
 	scriptsPrefix    string
 	htmlPrefix       string
 	typeScriptConfig string
-	scripts          []sourcePath
-	typeScripts      []sourcePath
+	scripts          map[string]sourcePath
+	typeScripts      map[string]sourcePath
 	htmls            map[string]*files.HTML
 	jsApps           map[string]sourcePath
 	buildOptions     []api.BuildOptions
@@ -52,6 +52,10 @@ func NewBuilder(sources []string, destination string, releaseBuild bool) *Builde
 		indexFile:        defaultIndexFile,
 		htmlExtension:    defaultHTMLExtension,
 		typeScriptConfig: defaultTypeScriptConfig,
+		jsApps:           make(map[string]sourcePath),
+		htmls:            make(map[string]*files.HTML),
+		scripts:          make(map[string]sourcePath),
+		typeScripts:      make(map[string]sourcePath),
 	}
 }
 
@@ -96,38 +100,55 @@ func (b *Builder) Build() error {
 	return nil
 }
 
+func (b *Builder) Rebuild() error {
+	b.prepareApps()
+	b.build()
+	if err := b.checkBuildErrors(); err != nil {
+		return fmt.Errorf("build failed: %s", err)
+	}
+	if err := b.processHTMLFiles(); err != nil {
+		return fmt.Errorf("error processing HTMLs: %s", err)
+	}
+	return nil
+}
+
 func (b *Builder) collectFiles() error {
-	b.jsApps = make(map[string]sourcePath)
-	b.htmls = make(map[string]*files.HTML)
 	for _, source := range b.sources {
 		if err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
 			}
-			switch {
-			case strings.HasSuffix(info.Name(), ".js"):
-				b.scripts = append(b.scripts, sourcePath{
-					BaseDir: source,
-					Path:    strings.TrimPrefix(path, source),
-				})
-			case strings.HasSuffix(info.Name(), ".ts"):
-				b.typeScripts = append(b.typeScripts, sourcePath{
-					BaseDir: source,
-					Path:    strings.TrimPrefix(path, source),
-				})
-			case strings.HasSuffix(info.Name(), b.htmlExtension):
-				name := strings.TrimPrefix(path, source)
-				if _, ok := b.htmls[name]; ok {
-					if b.releaseBuild {
-						return errors.New("duplicate source: " + name)
-					}
-				}
-				b.htmls[name] = files.NewHTML(filepath.Join(source, strings.TrimPrefix(path, source)))
+			if err := b.collectFileTypes(info, source, path); err != nil {
+				return err
 			}
-			return err
+			return nil
 		}); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (b *Builder) collectFileTypes(fileInfo os.FileInfo, source, path string) error {
+	switch {
+	case strings.HasSuffix(fileInfo.Name(), ".js"):
+		b.scripts[fileInfo.Name()] = sourcePath{
+			BaseDir: source,
+			Path:    strings.TrimPrefix(path, source),
+		}
+	case strings.HasSuffix(fileInfo.Name(), ".ts"):
+		b.typeScripts[fileInfo.Name()] = sourcePath{
+			BaseDir: source,
+			Path:    strings.TrimPrefix(path, source),
+		}
+	case strings.HasSuffix(fileInfo.Name(), b.htmlExtension):
+		name := strings.TrimPrefix(path, source)
+		if _, ok := b.htmls[name]; ok {
+			if b.releaseBuild {
+				return errors.New("duplicate source: " + name)
+			}
+		}
+		b.htmls[name] = files.NewHTML(filepath.Join(source, strings.TrimPrefix(path, source)))
 	}
 	return nil
 }

@@ -24,18 +24,17 @@ func NewBuildWatcher(paths []string) (*BuildWatcher, error) {
 	}, nil
 }
 
-func (bw *BuildWatcher) Watch() (chan struct{}, error) {
-	eventC := make(chan struct{})
+func (bw *BuildWatcher) Watch() (chan string, error) {
+	eventC := make(chan string)
 	if err := bw.watchFolders(); err != nil {
 		return nil, err
 	}
 	go func() {
 		for event := range bw.Watcher.Events {
+			log.Printf("CHMOD event 123 -> %s", event.Name)
 			if event.Op&fsnotify.Chmod == 0 {
-				if err := bw.watchFolders(); err != nil {
-					log.Printf("error watch folders: %s", err)
-				}
-				eventC <- struct{}{}
+				log.Printf("CHMOD event -> %s", event.String())
+				eventC <- event.String()
 			}
 		}
 	}()
@@ -43,6 +42,7 @@ func (bw *BuildWatcher) Watch() (chan struct{}, error) {
 }
 
 func (bw *BuildWatcher) watchFolders() error {
+	log.Printf("PATHS -> %#v", bw.paths)
 	for _, path := range bw.paths {
 		if err := filepath.Walk(path, func(newPath string, info os.FileInfo, err error) error {
 			if err != nil {

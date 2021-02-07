@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/BrightLocal/FrontBuilder/builder"
@@ -42,11 +43,19 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		go func(e chan struct{}) {
-			for range e {
+		go func(e chan string) {
+			for cmd := range e {
 				log.Println("Rebuild project files")
-				if err = frontBuilder.Build(); err != nil {
-					log.Printf("error rebuilding files: %s", err)
+				strs := strings.Split(cmd, ":")
+				log.Printf("str0: %s; str1: %s", strs[0], strs[1])
+				if strs[1] == "WRITE" {
+					if err = frontBuilder.Rebuild(); err != nil {
+						log.Printf("error rebuilding files: %s", err)
+					}
+				} else if strings.HasSuffix(strs[0], "~") {
+					if err = frontBuilder.Build(); err != nil {
+						log.Printf("error rebuilding files: %s", err)
+					}
 				}
 			}
 		}(events)
