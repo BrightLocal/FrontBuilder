@@ -35,18 +35,14 @@ func (bw *BuildWatcher) Watch() (chan struct{}, error) {
 			if event.Op&fsnotify.Create != 0 && !strings.HasSuffix(event.Name, "~") {
 				if err := bw.Watcher.Add(event.Name); err != nil {
 					log.Printf("error add path %s to watch: %s", event.Name, err)
-				} else {
-					eventC <- struct{}{}
 				}
 			}
 			if event.Op&fsnotify.Remove != 0 && !strings.HasSuffix(event.Name, "~") {
 				if err := bw.Watcher.Remove(event.Name); err != nil {
 					log.Printf("error remove path %s to watch: %s", event.Name, err)
-				} else {
-					eventC <- struct{}{}
 				}
 			}
-			if event.Op&fsnotify.Write != 0 && !strings.HasSuffix(event.Name, "~") {
+			if event.Op&fsnotify.Chmod == 0 {
 				eventC <- struct{}{}
 			}
 		}
