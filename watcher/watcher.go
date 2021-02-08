@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -31,10 +32,17 @@ func (bw *BuildWatcher) Watch() (chan struct{}, error) {
 	}
 	go func() {
 		for event := range bw.Watcher.Events {
-			if event.Op&fsnotify.Chmod == 0 {
-				if err := bw.watchFolders(); err != nil {
-					log.Printf("error watch folders: %s", err)
+			if event.Op&fsnotify.Create != 0 && !strings.HasSuffix(event.Name, "~") {
+				if err := bw.Watcher.Add(event.Name); err != nil {
+					log.Printf("error add path %s to watch: %s", event.Name, err)
 				}
+			}
+			if event.Op&fsnotify.Remove != 0 && !strings.HasSuffix(event.Name, "~") {
+				if err := bw.Watcher.Remove(event.Name); err != nil {
+					log.Printf("error remove path %s to watch: %s", event.Name, err)
+				}
+			}
+			if event.Op&fsnotify.Chmod == 0 {
 				eventC <- struct{}{}
 			}
 		}
