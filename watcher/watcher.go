@@ -46,7 +46,7 @@ func (bw *BuildWatcher) Watch() (chan struct{}, error) {
 					eventC <- struct{}{}
 				}
 			}
-			if event.Op&fsnotify.Write != 0 {
+			if event.Op&fsnotify.Write != 0 && !strings.HasSuffix(event.Name, "~") {
 				eventC <- struct{}{}
 			}
 		}
