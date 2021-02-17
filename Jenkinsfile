@@ -21,7 +21,7 @@ pipeline {
                 sh "docker pull ${DOCKER_IMAGE}"
                 echo 'Start container'
                 sh """
-                   docker run -d --rm --name ${DOCKER_CONTAINER_NAME} \\
+                   docker run -d --rm --net=host --name ${DOCKER_CONTAINER_NAME} \\
                    -v /home/jenkins/.ssh:/home/jenkins/.ssh \\
                    -v /home/jenkins/.cache:/home/jenkins/.cache \\
                    -v `pwd`:${PROJECT_PATH} \\
