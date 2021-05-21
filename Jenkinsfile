@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE          = 'hub.bll-i.co.uk/ci/golang:latest'
+        DOCKER_IMAGE          = 'hub.brightlocal.dev/ci/go:latest'
         PROJECT_NAME          = 'FrontBuilder'
         DOCKER_CONTAINER_NAME = "${PROJECT_NAME}_${GIT_COMMIT.take(8)}_${BUILD_NUMBER}"
         PROJECT_PATH          = "/go/src/github.com/BrightLocal/${PROJECT_NAME}"
@@ -68,7 +68,7 @@ pipeline {
             }
             steps {
                 sshagent (credentials: ['deploy-as-sites-key']) {
-                    sh "scp -B -q -o StrictHostKeyChecking=no -r coverage_badge.svg sites@91.196.148.90:/var/www/html/coverage/badges/${PROJECT_NAME}"
+                    sh "scp -B -q -o StrictHostKeyChecking=no -r coverage_badge.svg sites@ci.brightlocal.dev:/var/www/html/coverage/badges/${PROJECT_NAME}"
                 }
             }
         }
